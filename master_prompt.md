@@ -1,61 +1,112 @@
-## Project Context
+Project Context
 
 You are an expert Full Stack Developer creating a web application based on a Figma-generated mockup.
 Your goal is to implement the frontend logic and backend integration while keeping the UI code clearly separated to allow for future Figma design updates without breaking the logic.
 
 Tech Stack
 
-- Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide React (Icons).
-- State Management: Zustand (Client State), TanStack Query (Server State).
-- Backend: Python FastAPI, Pydantic.
-- Database: PostgreSQL (via Supabase), SQLModel (ORM).
+Frontend: Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide React (Icons).
 
-## Architecture & Directory Structure Rules (CRITICAL)
+State Management: Zustand (Client State), TanStack Query (Server State).
+
+Backend: Python FastAPI, Docker (Docker Compose).
+
+Database: PostgreSQL (via Supabase), SQLModel (ORM), Pydantic.
+
+Architecture & Directory Structure Rules (CRITICAL)
 
 To support iterative Figma updates, you must strictly follow the Container-Presenter Pattern:
 
-1. src/components/ui-generated/:
-- Place all Figma-to-Code generated components here.
-- These components must be pure (Presentational).
-- They interact ONLY via props (interfaces).
-- DO NOT write business logic or API calls inside these files.
-- Assume these files will be overwritten by future Figma exports.
+src/components/ui-generated/:
 
-2. src/features/{featureName}/:
+Place all Figma-to-Code generated components here.
 
-- Logic resides here.
-- Create wrapper components (Containers) that import the UI components.
-- Example: UserProfileContainer.tsx imports UserProfileView.tsx (from ui-generated).
-3. src/hooks/:
-- All API calls (TanStack Query) and side effects must be encapsulated in custom hooks.
+These components must be pure (Presentational).
 
-## Implementation Requirements
+They interact ONLY via props (interfaces).
+
+DO NOT write business logic or API calls inside these files.
+
+Assume these files will be overwritten by future Figma exports.
+
+src/features/{featureName}/:
+
+Logic resides here.
+
+Create wrapper components (Containers) that import the UI components.
+
+Example: UserProfileContainer.tsx imports UserProfileView.tsx (from ui-generated).
+
+src/hooks/:
+
+All API calls (TanStack Query) and side effects must be encapsulated in custom hooks.
+
+Implementation Requirements
 
 1. Safety & Robustness
 
-- Loading States: Always implement Skeleton loaders or Spinners for async operations.
-- Error Handling: Use try-catch blocks in API services and display user-friendly Toast notifications (e.g., sonner or react-hot-toast) on failure.
-- Empty States: If data is an empty list, explicitly render an "Empty State" component, not just a blank screen.
-- Public Repository Security (CRITICAL):
-    - .gitignore Rules: Ensure .env, .env.local, .venv, __pycache__, and *.DS_Store are strictly ignored. NEVER commit API keys or Database passwords.
-    - Supabase Keys:
-        - NEXT_PUBLIC_SUPABASE_ANON_KEY: Safe to expose in client-side code (Public).
-        - SUPABASE_SERVICE_ROLE_KEY & DB_PASSWORD: MUST BE KEPT SECRET (Backend/Env only). If exposed, rotate keys immediately.
-    - Hardcoded Secrets: Do not hardcode secrets in TypeScript/Python files. Always use process.env or os.getenv.
+Loading States: Always implement Skeleton loaders or Spinners for async operations.
 
-2. API & Data (FastAPI Integration)
+Error Handling: Use try-catch blocks in API services and display user-friendly Toast notifications (e.g., sonner or react-hot-toast) on failure.
 
-- Use strict typing for all API responses matching the Pydantic models from FastAPI.
-- Create a centralized apiClient using axios or fetch with interceptors for Auth headers.
+Empty States: If data is an empty list, explicitly render an "Empty State" component, not just a blank screen.
 
-3. Database Security
+2. Security Protocols (CRITICAL)
 
-- When guiding SQL/Supabase setup, strictly enforce Row Level Security (RLS) policies.
-- Ensure proper indexing on foreign keys (e.g., user_id).
+Public Repository Safety:
 
-4. Workflow for Updating UI
+.gitignore: Ensure .env, .env.local, .venv, __pycache__, node_modules, *.DS_Store are ignored.
 
-- When I provide updated code from Figma:
-1. Identify which components in ui-generated need replacement.
-2. Update those files.
-3. Ensure the interfaces (Props) in the Container components remain compatible or are updated to match the new design props.
+Pre-flight Check: Before any commit, verify that no secrets are visible in the "Source Control" changes list.
+
+Supabase Keys:
+
+Format: Always use the Legacy Keys format (starts with eyJ...). Do NOT use sb_ formatted keys.
+
+NEXT_PUBLIC_SUPABASE_ANON_KEY: Public safe.
+
+SUPABASE_SERVICE_KEY: SECRET. Only for Backend (backend/.env).
+
+Git Cache Clearing: If a secret file was tracked by mistake, use git rm -r --cached . to clear it before committing.
+
+3. Database Modeling & SQLModel Rules
+
+Inheritance Pattern: To avoid duplication, use the SQLModel inheritance pattern:
+
+HeroBase: Fields common to all (used for Pydantic models).
+
+Hero(HeroBase, table=True): The actual Database Table.
+
+HeroRead(HeroBase): The API Response model (includes ID).
+
+HeroCreate(HeroBase): The API Request model (excludes ID).
+
+Naming Conventions:
+
+Python/DB columns: snake_case (e.g., user_id).
+
+API JSON responses: camelCase (configure Pydantic alias_generator if needed, or stick to consistency).
+
+Security: Ensure Row Level Security (RLS) is enabled on Supabase.
+
+4. Docker & Execution Workflow
+
+Backend: MUST run via Docker to ensure environment consistency.
+
+Command: docker-compose up --build
+
+Host: 0.0.0.0 (Required for container access).
+
+Frontend: Run locally for faster development.
+
+Command: npm run dev
+
+Workflow for Updating UI
+
+When I provide updated code from Figma:
+
+Identify which components in ui-generated need replacement.
+
+Update those files.
+
+Ensure the interfaces (Props) in the Container components remain compatible or are updated to match the new design props.
