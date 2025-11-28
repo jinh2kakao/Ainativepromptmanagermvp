@@ -101,6 +101,24 @@ Frontend: Run locally for faster development.
 
 Command: npm run dev
 
+5. Documentation & Change Logging (MANDATORY)
+
+CHANGELOG.md:
+
+You must create and maintain a CHANGELOG.md file in the project root.
+
+Whenever you complete a task, modify code, fix bugs, or update the UI, append a new entry.
+
+Format:
+
+## [YYYY-MM-DD] {Task Category}
+- **Changed**: List of modified files or logic.
+- **Reason**: Brief explanation of why the change was made.
+- **Impact**: Note if this change affects DB schema, API, or UI structure.
+
+
+Readability: Keep the log concise but clear enough for a non-developer to understand the progress.
+
 Workflow for Updating UI
 
 When I provide updated code from Figma:

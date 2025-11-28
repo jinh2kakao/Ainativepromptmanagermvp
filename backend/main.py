@@ -1,17 +1,18 @@
-from fastapi import FastAPI
-
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
+from sqlalchemy import inspect, text
 from dotenv import load_dotenv
+from .database import create_db_and_tables, engine
 
 load_dotenv()
 
-from sqlalchemy import inspect
-from .database import create_db_and_tables, engine
-
-app = FastAPI()
-
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     create_db_and_tables()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 def read_root():
@@ -29,4 +30,7 @@ def health_db():
         
         return {"status": "ok", "tables": tables}
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "detail": str(e)}
+        )
