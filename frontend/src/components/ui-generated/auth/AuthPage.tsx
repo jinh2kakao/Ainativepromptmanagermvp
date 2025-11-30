@@ -9,9 +9,12 @@ import { SignUpForm } from './SignUpForm';
 
 interface AuthPageProps {
     onAuthSuccess: () => void;
+    onGoogleLogin: () => Promise<void>;
+    onEmailLogin: (email: string, password: string) => Promise<void>;
+    onSignUp: (email: string, password: string) => Promise<void>;
 }
 
-export function AuthPage({ onAuthSuccess }: AuthPageProps) {
+export function AuthPage({ onAuthSuccess, onGoogleLogin, onEmailLogin, onSignUp }: AuthPageProps) {
     const [mode, setMode] = useState<'login' | 'signup'>('login');
 
     return (
@@ -44,6 +47,8 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                                 <LoginForm
                                     onSwitchToSignUp={() => setMode('signup')}
                                     onLoginSuccess={onAuthSuccess}
+                                    onGoogleLogin={onGoogleLogin}
+                                    onEmailLogin={onEmailLogin}
                                 />
                             </motion.div>
                         ) : (
@@ -57,6 +62,8 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                                 <SignUpForm
                                     onSwitchToLogin={() => setMode('login')}
                                     onSignUpSuccess={onAuthSuccess}
+                                    onGoogleLogin={onGoogleLogin}
+                                    onSignUp={onSignUp}
                                 />
                             </motion.div>
                         )}

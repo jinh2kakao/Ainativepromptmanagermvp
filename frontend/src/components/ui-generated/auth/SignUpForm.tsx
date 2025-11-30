@@ -9,9 +9,11 @@ import { TermsModal } from './TermsModal';
 interface SignUpFormProps {
     onSwitchToLogin: () => void;
     onSignUpSuccess: () => void;
+    onGoogleLogin: () => Promise<void>;
+    onSignUp: (email: string, password: string) => Promise<void>;
 }
 
-export function SignUpForm({ onSwitchToLogin, onSignUpSuccess }: SignUpFormProps) {
+export function SignUpForm({ onSwitchToLogin, onSignUpSuccess, onGoogleLogin, onSignUp }: SignUpFormProps) {
     // const [step, setStep] = useState<'email' | 'profile'>('email'); // step is unused in the current implementation
     const [email, setEmail] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
@@ -71,8 +73,9 @@ export function SignUpForm({ onSwitchToLogin, onSignUpSuccess }: SignUpFormProps
         setErrors({});
         setIsCodeSent(true);
         setTimer(180);
-        // Mock send code
-        alert('인증번호가 이메일로 전송되었습니다 (Mock: 123456)');
+        // For MVP, we skip actual email verification code and just let user proceed
+        // In a real app, we would send an OTP here.
+        alert('인증번호가 이메일로 전송되었습니다 (MVP: 123456 입력)');
     };
 
     const handleVerifyCode = () => {
@@ -118,11 +121,14 @@ export function SignUpForm({ onSwitchToLogin, onSignUpSuccess }: SignUpFormProps
 
         setIsLoading(true);
 
-        // Mock sign up
-        setTimeout(() => {
-            setIsLoading(false);
+        try {
+            await onSignUp(email, password);
             onSignUpSuccess();
-        }, 1500);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

@@ -7,9 +7,11 @@ import { SocialLoginTermsModal } from './SocialLoginTermsModal';
 interface LoginFormProps {
     onSwitchToSignUp: () => void;
     onLoginSuccess: () => void;
+    onGoogleLogin: () => Promise<void>;
+    onEmailLogin: (email: string, password: string) => Promise<void>;
 }
 
-export function LoginForm({ onSwitchToSignUp, onLoginSuccess }: LoginFormProps) {
+export function LoginForm({ onSwitchToSignUp, onLoginSuccess, onGoogleLogin, onEmailLogin }: LoginFormProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -40,23 +42,22 @@ export function LoginForm({ onSwitchToSignUp, onLoginSuccess }: LoginFormProps) 
 
         setIsLoading(true);
 
-        // Mock login - replace with actual API call
-        setTimeout(() => {
-            setIsLoading(false);
+        try {
+            await onEmailLogin(email, password);
             onLoginSuccess();
-        }, 1500);
+        } catch (error) {
+            console.error(error);
+            // Error handling is done in container via toast, but we could set error state here too
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleGoogleLogin = () => {
-        // Mock Google OAuth - check if new user
-        const isNewUser = Math.random() > 0.5; // Mock: 50% chance of new user
-
-        if (isNewUser) {
-            // Show terms modal for new user
-            setShowSocialTermsModal(true);
-        } else {
-            // Existing user - login directly
-            onLoginSuccess();
+    const handleGoogleLogin = async () => {
+        try {
+            await onGoogleLogin();
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -109,8 +110,8 @@ export function LoginForm({ onSwitchToSignUp, onLoginSuccess }: LoginFormProps) 
                             }}
                             placeholder="your@email.com"
                             className={`w-full pl-9 md:pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all text-sm md:text-base min-h-[48px] ${errors.email
-                                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                 }`}
                         />
                     </div>
@@ -135,8 +136,8 @@ export function LoginForm({ onSwitchToSignUp, onLoginSuccess }: LoginFormProps) 
                             }}
                             placeholder="••••••••"
                             className={`w-full pl-9 md:pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all text-sm md:text-base min-h-[48px] ${errors.password
-                                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                                    : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                 }`}
                         />
                     </div>
