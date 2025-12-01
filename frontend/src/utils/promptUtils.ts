@@ -44,8 +44,8 @@ export const getJobConfig = (jobType: string) => {
   return defaultConfig;
 };
 
-// [추가] 구조화된 프롬프트 조립 (JSON -> String)
-export const assemblePrompt = (structure: any, variables: any) => {
+// [수정] variables 인자를 선택적(optional)으로 변경하여 호출 시 생략 가능하게 함
+export const assemblePrompt = (structure: any, variables?: any) => {
   if (!structure) return '';
 
   // structure가 문자열인 경우 그대로 반환
