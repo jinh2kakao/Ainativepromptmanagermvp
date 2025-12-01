@@ -12,6 +12,9 @@ import { Header } from '@/components/ui-generated/Header';
 import { PromptListView } from '@/components/ui-generated/PromptListView';
 import { PromptModal } from '@/components/ui-generated/PromptModal';
 import { EmptyState } from '@/components/ui-generated/EmptyState';
+import { PricingModal } from '@/components/ui-generated/PricingModal';
+import { SettingsPage } from '@/components/ui-generated/settings/SettingsPage';
+import { useAuthStore } from '@/features/auth/store';
 
 export default function PromptListContainer() {
     const router = useRouter();
@@ -19,10 +22,13 @@ export default function PromptListContainer() {
     const { data: prompts = [], isLoading, error } = usePrompts();
     const createMutation = useCreatePrompt();
     const deleteMutation = useDeletePrompt();
+    const { user } = useAuthStore();
 
     // 2. UI 상태 관리
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
 
     // 3. 기능 구현
@@ -64,6 +70,18 @@ export default function PromptListContainer() {
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
     if (error) return <div className="p-4 text-center text-red-500">Error: {error.message}</div>;
 
+    // Settings Page Rendering
+    if (isSettingsOpen) {
+        return (
+            <SettingsPage
+                onBack={() => setIsSettingsOpen(false)}
+                userEmail={user?.email || 'user@example.com'}
+                userName={user?.user_metadata?.full_name || 'User'}
+                userType="free"
+            />
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             {/* 1. Global Header (상단 네비게이션) */}
@@ -74,8 +92,8 @@ export default function PromptListContainer() {
                 promptCount={prompts.length}
                 quotaLimit={10}
                 onSignUp={handleLogout}
-                onOpenPricing={() => alert('가격 정책')}
-                onOpenSettings={() => alert('설정')}
+                onOpenPricing={() => setIsPricingModalOpen(true)}
+                onOpenSettings={() => setIsSettingsOpen(true)}
             />
 
             {/* 2. Main Content */}
@@ -124,6 +142,17 @@ export default function PromptListContainer() {
                     prompt={editingPrompt}
                     onSave={handleSave}
                     onClose={() => setIsModalOpen(false)}
+                />
+            )}
+
+            {/* Pricing Modal */}
+            {isPricingModalOpen && (
+                <PricingModal
+                    onClose={() => setIsPricingModalOpen(false)}
+                    onUpgrade={() => {
+                        alert('업그레이드 페이지로 이동합니다 (준비중)');
+                        setIsPricingModalOpen(false);
+                    }}
                 />
             )}
         </div>
