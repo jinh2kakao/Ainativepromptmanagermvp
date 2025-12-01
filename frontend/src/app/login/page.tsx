@@ -1,7 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import AuthContainer from '@/features/auth/AuthContainer';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-// Supabase 클라이언트 인스턴스 생성
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export default function LoginPage() {
+    return <AuthContainer />;
+}

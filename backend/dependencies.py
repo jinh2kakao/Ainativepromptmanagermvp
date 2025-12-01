@@ -4,8 +4,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session, select
 from dotenv import load_dotenv
-from .database import get_session
-from .models import User, UserType
+from database import get_session
+from models import User, UserType
 import uuid
 
 load_dotenv()
