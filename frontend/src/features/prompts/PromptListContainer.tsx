@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-// [수정] Prompt 타입 제거 (여기서 가져오지 않습니다)
+import { Plus } from 'lucide-react'; // [추가] 아이콘 임포트
 import { usePrompts, useCreatePrompt, useDeletePrompt } from './usePromptHooks';
-// [수정] Prompt 타입을 중앙 타입 정의(@/types)에서 가져옵니다.
 import { ViewMode, Prompt } from '@/types';
 import { supabase } from '@/utils/supabase/client';
 
@@ -14,7 +13,7 @@ import { PromptModal } from '@/components/ui-generated/PromptModal';
 import { EmptyState } from '@/components/ui-generated/EmptyState';
 
 export default function PromptListContainer() {
-    // 1. 데이터 관리 (React Query)
+    // 1. 데이터 관리
     const { data: prompts = [], isLoading, error } = usePrompts();
     const createMutation = useCreatePrompt();
     const deleteMutation = useDeletePrompt();
@@ -22,15 +21,11 @@ export default function PromptListContainer() {
     // 2. UI 상태 관리
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    // Prompt 타입이 @/types로 통일되어 에러가 사라집니다.
     const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
 
-    // 3. 기능 구현 (Handlers)
-
-    // [추가] 로그아웃 기능 (Header와 연결)
+    // 3. 기능 구현
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        // page.tsx가 감지하여 자동으로 로그인 화면으로 바뀝니다.
     };
 
     const handleCreate = () => {
@@ -63,39 +58,61 @@ export default function PromptListContainer() {
         setIsModalOpen(false);
     };
 
-    // 4. 화면 렌더링
+    // 4. 로딩 및 에러 처리
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
     if (error) return <div className="p-4 text-center text-red-500">Error: {error.message}</div>;
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* 상단 헤더 */}
+            {/* 1. Global Header (상단 네비게이션) */}
             <Header
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
                 userType="free"
                 promptCount={prompts.length}
                 quotaLimit={10}
-                // [중요] 여기에 로그아웃 함수를 연결합니다. 
-                // (Header 컴포넌트 정의에 따라 onSignUp 대신 onLogout 등의 이름일 수 있습니다.)
                 onSignUp={handleLogout}
-                onOpenPricing={() => alert('가격 정책 준비 중')}
-                onOpenSettings={() => alert('설정 준비 중')}
+                onOpenPricing={() => alert('가격 정책')}
+                onOpenSettings={() => alert('설정')}
             />
 
-            {/* 메인 콘텐츠 (중앙 정렬) */}
+            {/* 2. Main Content */}
             <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
                 {prompts.length === 0 ? (
+                    // 데이터 없을 때: Empty State
                     <EmptyState onCreateClick={handleCreate} />
                 ) : (
-                    <PromptListView
-                        prompts={prompts}
-                        viewMode={viewMode}
-                        onPromptClick={(p) => console.log('View', p)}
-                        onRun={(p) => console.log('Run', p)}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                    />
+                    // 데이터 있을 때: Page Header + List
+                    <div className="space-y-6">
+
+                        {/* [추가됨] Figma 디자인의 Page Header 영역 */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-900">My Prompts</h1>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {prompts.length} prompt{prompts.length !== 1 && 's'} saved
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleCreate}
+                                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                            >
+                                <Plus className="w-5 h-5 mr-2" />
+                                New Prompt
+                            </button>
+                        </div>
+
+                        {/* 리스트 뷰 (검색창 + 카드 리스트) */}
+                        <PromptListView
+                            prompts={prompts}
+                            viewMode={viewMode}
+                            onPromptClick={(p) => console.log('View', p)}
+                            onRun={(p) => console.log('Run', p)}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                        />
+                    </div>
                 )}
             </main>
 

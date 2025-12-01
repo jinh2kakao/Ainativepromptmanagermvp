@@ -72,6 +72,17 @@ export function PromptModal({ prompt, onSave, onClose }: PromptModalProps) {
                 finalTitle = firstLine.substring(0, 20) + (firstLine.length > 20 ? '...' : '');
             }
         } else {
+            // Assistance Mode Validation: Check if at least one field is filled
+            const hasAssistanceContent = ['persona', 'asset', 'instruction', 'result'].some(sectionKey => {
+                const section = (assistanceStructure as any)[sectionKey];
+                return section && Object.values(section).some((val: any) => typeof val === 'string' && val.trim().length > 0);
+            });
+
+            if (!hasAssistanceContent) {
+                alert('최소 1개 이상의 항목을 입력해주세요 (Profile, Intent 등)');
+                return;
+            }
+
             content = assemblePrompt(assistanceStructure);
             variables = extractVariables(content);
             structure = assistanceStructure;
@@ -166,8 +177,8 @@ export function PromptModal({ prompt, onSave, onClose }: PromptModalProps) {
                                         className="w-full px-3 py-2.5 md:py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] md:min-h-0"
                                     >
                                         <option value="">직군을 선택하세요</option>
-                                        {Object.keys(jobCategories).map((cat) => (
-                                            <option key={cat} value={cat}>{cat}</option>
+                                        {jobCategories.map((cat) => (
+                                            <option key={cat.value} value={cat.value}>{cat.label}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -184,8 +195,8 @@ export function PromptModal({ prompt, onSave, onClose }: PromptModalProps) {
                                         className="w-full px-3 py-2.5 md:py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed min-h-[44px] md:min-h-0"
                                     >
                                         <option value="">세부 직무를 선택하세요</option>
-                                        {category && jobCategories[category]?.map((sub) => (
-                                            <option key={sub} value={sub}>{sub}</option>
+                                        {category && jobCategories.find(c => c.value === category)?.subCategories?.map((sub) => (
+                                            <option key={sub.value} value={sub.value}>{sub.label}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -207,8 +218,8 @@ export function PromptModal({ prompt, onSave, onClose }: PromptModalProps) {
                                 <button
                                     onClick={() => handleModeChange('simple')}
                                     className={`flex-1 md:flex-none px-3 md:px-4 py-2.5 md:py-2 rounded-md flex items-center justify-center gap-2 transition-all duration-200 text-sm min-h-[44px] md:min-h-0 ${mode === 'simple'
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                                         }`}
                                 >
                                     📝 일반모드
@@ -216,8 +227,8 @@ export function PromptModal({ prompt, onSave, onClose }: PromptModalProps) {
                                 <button
                                     onClick={() => handleModeChange('assistance')}
                                     className={`flex-1 md:flex-none px-3 md:px-4 py-2.5 md:py-2 rounded-md flex items-center justify-center gap-2 transition-all duration-200 text-sm min-h-[44px] md:min-h-0 ${mode === 'assistance'
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                                         }`}
                                 >
                                     🤖 어시스턴스
