@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025-12-01] UI/UX Improvements & Bug Fixes
+- **Changed**:
+  - `frontend/src/components/ui-generated/PromptModal.tsx`: Fixed "Object is possibly 'undefined'" error by adding safe navigation and fallback for profile check.
+  - `frontend/src/utils/promptUtils.ts`: Updated `assemblePrompt` to support both nested (Assistance Mode) and flat data structures.
+  - `frontend/src/features/prompts/PromptListContainer.tsx`: 
+    - Connected "Pro Upgrade" button in Header to `PricingModal`.
+    - Connected "Settings" button in Header to `SettingsPage`.
+    - Implemented state management for modal visibility.
+- **Reason**: To improve application stability and complete navigation flows for Pricing and Settings.
+- **Impact**: Users can now safely use Assistance Mode without crashes and navigate to Pricing and Settings pages from the Header.
+
 ## [2025-12-01] Deployment Setup & Bug Fixes
 - **Changed**:
   - `frontend/next.config.ts`: Configured for GitHub Pages export (`output: 'export'`, `basePath`).
