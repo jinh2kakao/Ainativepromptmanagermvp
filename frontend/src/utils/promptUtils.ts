@@ -1,112 +1,65 @@
 // [수정] Prompt 타입 import 경로를 @/types로 변경 (Antigravity 수정 반영)
 import { Prompt } from '@/types';
 
-export interface SubCategory {
-  value: string;
-  label: string;
-}
-
+// 프롬프트 카테고리 데이터 정의
 export interface JobCategory {
-  value: string;
   label: string;
-  subCategories?: SubCategory[];
+  value: string;
+  subCategories?: { label: string; value: string; }[];
 }
 
 // 프롬프트 카테고리 데이터 정의
 export const jobCategories: JobCategory[] = [
   {
-    value: '서비스 & 프로덕트 기획',
-    label: '서비스 & 프로덕트 기획',
+    label: '개발 (Development)',
+    value: 'dev',
     subCategories: [
-      { value: '비즈니스 모델(BM) 수립', label: '비즈니스 모델(BM) 수립' },
-      { value: '사용자 리서치(UX Research)', label: '사용자 리서치(UX Research)' },
-      { value: '기능 명세 및 정책', label: '기능 명세 및 정책' },
-      { value: '화면 설계(IA)', label: '화면 설계(IA)' },
-      { value: '프로젝트 관리(PM/PO)', label: '프로젝트 관리(PM/PO)' }
+      { label: 'Frontend', value: 'frontend' },
+      { label: 'Backend', value: 'backend' },
+      { label: 'DevOps', value: 'devops' },
+      { label: 'Mobile', value: 'mobile' },
+      { label: 'AI/ML', value: 'ai-ml' }
     ]
   },
   {
-    value: 'UI/UX & 크리에이티브 디자인',
-    label: 'UI/UX & 크리에이티브 디자인',
+    label: '마케팅 (Marketing)',
+    value: 'marketing',
     subCategories: [
-      { value: 'UI 구조 및 레이아웃', label: 'UI 구조 및 레이아웃' },
-      { value: '디자인 시스템', label: '디자인 시스템' },
-      { value: 'UX 라이팅', label: 'UX 라이팅' },
-      { value: '그래픽 & 브랜딩', label: '그래픽 & 브랜딩' },
-      { value: '디자인 리뷰', label: '디자인 리뷰' }
+      { label: 'Content Marketing', value: 'content' },
+      { label: 'Social Media', value: 'social' },
+      { label: 'Email Marketing', value: 'email' },
+      { label: 'SEO', value: 'seo' }
     ]
   },
   {
-    value: '소프트웨어 개발 & 엔지니어링',
-    label: '소프트웨어 개발 & 엔지니어링',
+    label: '비즈니스 (Business)',
+    value: 'business',
     subCategories: [
-      { value: '프론트엔드 개발', label: '프론트엔드 개발' },
-      { value: '백엔드 & API', label: '백엔드 & API' },
-      { value: '코드 품질 & 리팩토링', label: '코드 품질 & 리팩토링' },
-      { value: '데브옵스 & 인프라', label: '데브옵스 & 인프라' },
-      { value: 'QA & 테스팅', label: 'QA & 테스팅' },
-      { value: '기술 문서', label: '기술 문서' }
+      { label: 'Strategy', value: 'strategy' },
+      { label: 'Sales', value: 'sales' },
+      { label: 'Management', value: 'management' }
     ]
   },
   {
-    value: '데이터 분석 & AI',
-    label: '데이터 분석 & AI',
+    label: '글쓰기 (Writing)',
+    value: 'writing',
     subCategories: [
-      { value: '데이터 쿼리(SQL)', label: '데이터 쿼리(SQL)' },
-      { value: '데이터 시각화', label: '데이터 시각화' },
-      { value: '데이터 분석 보고', label: '데이터 분석 보고' },
-      { value: 'AI 모델링', label: 'AI 모델링' }
+      { label: 'Blog', value: 'blog' },
+      { label: 'Copywriting', value: 'copywriting' },
+      { label: 'Technical Writing', value: 'tech-writing' },
+      { label: 'Creative Writing', value: 'creative' }
     ]
   },
   {
-    value: '마케팅 & 그로스',
-    label: '마케팅 & 그로스',
+    label: '디자인 (Design)',
+    value: 'design',
     subCategories: [
-      { value: '카피라이팅(Ads)', label: '카피라이팅(Ads)' },
-      { value: '콘텐츠 마케팅', label: '콘텐츠 마케팅' },
-      { value: '소셜 미디어(SNS)', label: '소셜 미디어(SNS)' },
-      { value: 'CRM & 이메일', label: 'CRM & 이메일' },
-      { value: '브랜드 스토리텔링', label: '브랜드 스토리텔링' }
+      { label: 'UI/UX', value: 'ui-ux' },
+      { label: 'Graphic Design', value: 'graphic' },
+      { label: 'Web Design', value: 'web' }
     ]
   },
-  {
-    value: '유튜브 & 영상 미디어',
-    label: '유튜브 & 영상 미디어',
-    subCategories: [
-      { value: '숏폼 시나리오', label: '숏폼 시나리오' },
-      { value: '롱폼 영상 기획', label: '롱폼 영상 기획' },
-      { value: '영상 메타데이터', label: '영상 메타데이터' },
-      { value: '스토리보드 묘사', label: '스토리보드 묘사' }
-    ]
-  },
-  {
-    value: '비즈니스 일반 & 영업',
-    label: '비즈니스 일반 & 영업',
-    subCategories: [
-      { value: '비즈니스 이메일', label: '비즈니스 이메일' },
-      { value: '문서 및 보고서', label: '문서 및 보고서' },
-      { value: '발표 및 스피치', label: '발표 및 스피치' },
-      { value: '협상 및 커뮤니케이션', label: '협상 및 커뮤니케이션' }
-    ]
-  },
-  {
-    value: '인사 & 조직문화',
-    label: '인사 & 조직문화',
-    subCategories: [
-      { value: '채용(Recruiting)', label: '채용(Recruiting)' },
-      { value: '온보딩 & 교육', label: '온보딩 & 교육' },
-      { value: '평가 & 피드백', label: '평가 & 피드백' }
-    ]
-  },
-  {
-    value: '고객 경험 & 지원 (CS/CX)',
-    label: '고객 경험 & 지원 (CS/CX)',
-    subCategories: [
-      { value: '고객 응대', label: '고객 응대' },
-      { value: '챗봇 시나리오', label: '챗봇 시나리오' },
-      { value: '설문조사', label: '설문조사' }
-    ]
-  }
+  { label: '기타 (Other)', value: 'other', subCategories: [] },
 ];
 
 // 날짜 포맷팅 유틸리티
@@ -126,17 +79,73 @@ export const truncateText = (text: string, maxLength: number) => {
   return text.slice(0, maxLength) + '...';
 };
 
-// [추가] 직무별 프롬프트 구조 설정 가져오기
+// [수정] 직무별 프롬프트 구조 설정 가져오기 (persona 속성 추가)
 export const getJobConfig = (jobType: string) => {
-  // 실제로는 더 복잡한 설정이 들어갈 수 있습니다.
-  // 여기서는 간단한 예시 구조를 반환합니다.
+  // 실제로는 jobType에 따라 다른 설정을 반환할 수 있습니다.
+  // AssistanceMode.tsx에서 기대하는 구조에 맞춰 설정을 반환합니다.
   const defaultConfig = {
-    sections: [
-      { id: 'role', label: 'Role', placeholder: 'Act as a...' },
-      { id: 'task', label: 'Task', placeholder: 'Your task is to...' },
-      { id: 'context', label: 'Context', placeholder: 'Provide context...' },
-      { id: 'format', label: 'Format', placeholder: 'Output format...' },
-    ]
+    persona: {
+      profile: {
+        id: 'profile',
+        label: 'Profile',
+        guide: 'AI의 역할과 전문성을 정의하세요',
+        placeholder: '예: 10년차 시니어 마케터, 친절한 상담원...'
+      },
+      intent: {
+        id: 'intent',
+        label: 'Intent',
+        guide: '이 프롬프트의 핵심 목표를 설정하세요',
+        placeholder: '예: 블로그 글 작성, 코드 리팩토링, 이메일 초안 작성...'
+      }
+    },
+    asset: {
+      knowledgeBase: {
+        id: 'knowledgeBase',
+        label: 'Knowledge Base',
+        guide: '참고할 배경 지식이나 데이터를 입력하세요',
+        placeholder: '예: 회사 소개서 내용, 제품 스펙 시트, 관련 기사...'
+      },
+      styleGuide: {
+        id: 'styleGuide',
+        label: 'Style Guide',
+        guide: '글의 톤앤매너와 스타일을 지정하세요',
+        placeholder: '예: 친근한 구어체, 전문적인 문어체, 간결하게...'
+      }
+    },
+    instruction: {
+      task: {
+        id: 'task',
+        label: 'Task',
+        guide: '수행해야 할 구체적인 작업을 지시하세요',
+        placeholder: '예: 위 내용을 바탕으로 3개의 마케팅 카피를 작성해줘...'
+      },
+      context: {
+        id: 'context',
+        label: 'Context',
+        guide: '작업의 맥락과 상황을 설명하세요',
+        placeholder: '예: 이번 캠페인은 2030 세대를 타겟으로 하며...'
+      },
+      constraints: {
+        id: 'constraints',
+        label: 'Constraints',
+        guide: '지켜야 할 제약조건을 명시하세요',
+        placeholder: '예: 500자 이내, 이모지 사용 금지, 비속어 금지...'
+      }
+    },
+    result: {
+      format: {
+        id: 'format',
+        label: 'Format',
+        guide: '결과물의 형식을 지정하세요',
+        placeholder: '예: 마크다운 표, JSON, 글머리 기호...'
+      },
+      example: {
+        id: 'example',
+        label: 'Example',
+        guide: '원하는 결과물의 예시를 보여주세요',
+        placeholder: '예: 입력: 사과 -> 출력: Apple (과일)...'
+      }
+    }
   };
 
   return defaultConfig;
@@ -149,11 +158,18 @@ export const assemblePrompt = (structure: any, variables?: any) => {
   // structure가 문자열인 경우 그대로 반환
   if (typeof structure === 'string') return structure;
 
-  // JSON 구조인 경우 조립 로직 (예시)
+  // JSON 구조인 경우 조립 로직
   let assembledText = '';
-  if (structure.role) assembledText += `Role: ${structure.role}\n`;
-  if (structure.task) assembledText += `Task: ${structure.task}\n`;
-  if (structure.context) assembledText += `Context: ${structure.context}\n`;
+
+  // Persona 섹션 처리
+  if (structure.profile) assembledText += `Role: ${structure.profile}\n`;
+  if (structure.intent) assembledText += `Goal: ${structure.intent}\n\n`;
+
+  // 나머지 섹션 처리
+  if (structure.context) assembledText += `Context:\n${structure.context}\n\n`;
+  if (structure.task) assembledText += `Task:\n${structure.task}\n\n`;
+  if (structure.constraints) assembledText += `Constraints:\n${structure.constraints}\n\n`;
+  if (structure.format) assembledText += `Output Format:\n${structure.format}`;
 
   return assembledText;
 };
