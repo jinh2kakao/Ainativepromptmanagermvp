@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react'; // [추가] 아이콘 임포트
 import { usePrompts, useCreatePrompt, useDeletePrompt } from './usePromptHooks';
 import { ViewMode, Prompt } from '@/types';
@@ -13,6 +14,7 @@ import { PromptModal } from '@/components/ui-generated/PromptModal';
 import { EmptyState } from '@/components/ui-generated/EmptyState';
 
 export default function PromptListContainer() {
+    const router = useRouter();
     // 1. 데이터 관리
     const { data: prompts = [], isLoading, error } = usePrompts();
     const createMutation = useCreatePrompt();
@@ -107,7 +109,7 @@ export default function PromptListContainer() {
                         <PromptListView
                             prompts={prompts}
                             viewMode={viewMode}
-                            onPromptClick={(p) => console.log('View', p)}
+                            onPromptClick={(p) => router.push(`/prompts/${p.id}`)}
                             onRun={(p) => console.log('Run', p)}
                             onEdit={handleEdit}
                             onDelete={handleDelete}

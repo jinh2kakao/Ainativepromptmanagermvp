@@ -26,24 +26,42 @@ export interface PromptUpdate {
     variables?: string[];
 }
 
+// Helper to map backend snake_case to frontend camelCase
+const mapToPrompt = (data: any): Prompt => {
+    return {
+        id: data.id,
+        title: data.title,
+        mode: data.mode,
+        content: data.content || '',
+        category: data.category,
+        subCategory: data.sub_category,
+        isPublic: data.is_public,
+        ownerId: data.owner_id,
+        structure: data.structure,
+        variables: data.variables || [],
+        createdAt: new Date(data.created_at).getTime(),
+        updatedAt: new Date(data.updated_at).getTime(),
+    };
+};
+
 export const getPrompts = async (): Promise<Prompt[]> => {
     const response = await api.get('/api/prompts/');
-    return response.data;
+    return response.data.map(mapToPrompt);
 };
 
 export const getPrompt = async (id: string): Promise<Prompt> => {
     const response = await api.get(`/api/prompts/${id}`);
-    return response.data;
+    return mapToPrompt(response.data);
 };
 
 export const createPrompt = async (data: PromptCreate): Promise<Prompt> => {
     const response = await api.post('/api/prompts/', data);
-    return response.data;
+    return mapToPrompt(response.data);
 };
 
 export const updatePrompt = async (id: string, data: PromptUpdate): Promise<Prompt> => {
     const response = await api.patch(`/api/prompts/${id}`, data);
-    return response.data;
+    return mapToPrompt(response.data);
 };
 
 export const deletePrompt = async (id: string): Promise<void> => {

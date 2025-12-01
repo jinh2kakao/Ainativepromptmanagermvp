@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025-12-01] Fix Runtime Errors & Update Validation
+- **Changed**:
+  - `frontend/src/components/ui-generated/PromptModal.tsx`: Fixed `jobCategories` map error and updated validation logic for Assistance Mode.
+  - `frontend/src/components/ui-generated/AssistanceMode.tsx`: Fixed undefined config error.
+  - `frontend/src/utils/promptUtils.ts`: Updated `getJobConfig` and `assemblePrompt` to support nested structures and shared data.
+- **Reason**: Resolved runtime crashes due to data structure mismatches and improved form validation.
+- **Impact**: Assistance Mode now works correctly with proper validation and prompt generation.
+
 ## [2025-12-01] Fix Type Mismatch in PromptListContainer
 - **Changed**: `frontend/src/features/prompts/PromptListContainer.tsx`
 - **Reason**: Fixed type error where `deleteMutation.mutate` was receiving a `number` instead of `string`. Removed unnecessary `Number()` casting.
