@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { usePrompt, useDeletePrompt, useUpdatePrompt } from '@/features/prompts/usePromptHooks';
 import { PromptDetailPage } from '@/components/ui-generated/PromptDetailPage';
 
@@ -8,10 +8,11 @@ import { supabase } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 
 export function PromptDetailClient() {
-    const params = useParams();
+    const searchParams = useSearchParams();
     const router = useRouter();
-    const id = params.id as string;
+    const id = searchParams.get('id') as string;
     const [currentUserId, setCurrentUserId] = useState<string>('');
+    const [isAuthLoading, setIsAuthLoading] = useState(true);
 
     const { data: prompt, isLoading, error } = usePrompt(id);
     const deleteMutation = useDeletePrompt();
@@ -19,15 +20,19 @@ export function PromptDetailClient() {
 
     useEffect(() => {
         const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                setCurrentUserId(user.id);
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setCurrentUserId(user.id);
+                }
+            } finally {
+                setIsAuthLoading(false);
             }
         };
         getUser();
     }, []);
 
-    if (isLoading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    if (isLoading || isAuthLoading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
     if (error) return <div className="p-4 text-center text-red-500">Error: {(error as Error).message}</div>;
     if (!prompt) return <div className="p-4 text-center">Prompt not found</div>;
 

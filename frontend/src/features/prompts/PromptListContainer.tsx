@@ -61,6 +61,10 @@ export default function PromptListContainer() {
                 content: data.content,
                 mode: data.mode || 'simple',
                 is_public: data.isPublic || false,
+                category: data.category,
+                sub_category: data.subCategory,
+                structure: data.structure,
+                variables: data.variables,
             });
         }
         setIsModalOpen(false);
@@ -127,7 +131,7 @@ export default function PromptListContainer() {
                         <PromptListView
                             prompts={prompts}
                             viewMode={viewMode}
-                            onPromptClick={(p) => router.push(`/prompts/${p.id}`)}
+                            onPromptClick={(p) => router.push(`/prompts/view?id=${p.id}`)}
                             onRun={(p) => console.log('Run', p)}
                             onEdit={handleEdit}
                             onDelete={handleDelete}

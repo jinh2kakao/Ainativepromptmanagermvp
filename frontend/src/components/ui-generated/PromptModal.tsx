@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Globe, Lock } from 'lucide-react';
 import { Prompt } from '@/types';
 import { SimpleModeInput } from './SimpleModeInput';
 import { AssistanceMode } from './AssistanceMode';
@@ -39,6 +39,7 @@ export function PromptModal({ prompt, onSave, onClose }: PromptModalProps) {
     );
     const [category, setCategory] = useState(prompt?.category || '');
     const [subCategory, setSubCategory] = useState(prompt?.subCategory || '');
+    const [isPublic, setIsPublic] = useState(prompt?.isPublic || false);
 
     const handleModeChange = (newMode: 'simple' | 'assistance') => {
         setMode(newMode);
@@ -103,7 +104,7 @@ export function PromptModal({ prompt, onSave, onClose }: PromptModalProps) {
             variables,
             category,
             subCategory,
-            isPublic: prompt?.isPublic ?? false,
+            isPublic,
             ownerId: prompt?.ownerId
         });
     };
@@ -253,13 +254,24 @@ export function PromptModal({ prompt, onSave, onClose }: PromptModalProps) {
 
                 {/* Footer */}
                 <div className="px-4 md:px-6 py-3 md:py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 md:rounded-b-xl">
-                    {/* Warning Message */}
-                    <div className="text-xs text-gray-500 order-2 md:order-1">
+                    {/* Left: Public/Private Toggle & Warning */}
+                    <div className="flex items-center gap-3 order-2 md:order-1">
+                        <button
+                            onClick={() => setIsPublic(!isPublic)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all duration-200 text-sm ${isPublic
+                                ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                                : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                                }`}
+                            title={isPublic ? '공개: 누구나 볼 수 있습니다' : '비공개: 나만 볼 수 있습니다'}
+                        >
+                            {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                            <span className="font-medium">{isPublic ? '공개' : '비공개'}</span>
+                        </button>
+
                         {!category && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg border border-orange-200">
+                            <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg border border-orange-200 text-xs">
                                 <span>⚠️</span>
-                                <span className="hidden md:inline">대분류 직무 선택이 필요합니다</span>
-                                <span className="md:hidden">대분류 선택 필요</span>
+                                <span>대분류 선택 필요</span>
                             </span>
                         )}
                     </div>

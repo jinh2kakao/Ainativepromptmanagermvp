@@ -43,7 +43,11 @@ def read_prompt(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    statement = select(Prompt).where(Prompt.id == prompt_id, Prompt.owner_id == current_user.id)
+    from sqlmodel import or_
+    statement = select(Prompt).where(
+        Prompt.id == prompt_id,
+        or_(Prompt.owner_id == current_user.id, Prompt.is_public == True)
+    )
     prompt = session.exec(statement).first()
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt not found")

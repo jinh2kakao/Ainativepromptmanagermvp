@@ -19,8 +19,14 @@ All notable changes to this project will be documented in this file.
   - `.github/workflows/deploy.yml`: Added GitHub Actions workflow for automated deployment.
   - `frontend/src/features/prompts/api.ts`: Added data mapping to convert backend `snake_case` to frontend `camelCase`.
   - `frontend/src/app/prompts/[id]/page.tsx`: Removed unused `useUserStore` import.
-- **Reason**: Enable static site deployment and fix private prompt visibility issues for authors.
-- **Impact**: Automated deployment to GitHub Pages and correct access control for private prompts.
+  - `frontend/next.config.ts`: Made `basePath` conditional to fix local development 404 errors.
+  - `frontend/src/features/prompts/PromptListContainer.tsx`: Fixed issue where `category`, `subCategory`, `structure`, and `variables` were not being saved during prompt creation.
+  - **Refactor**: Changed routing from Dynamic Routes (`/prompts/[id]`) to Query Parameters (`/prompts/view?id=...`) to support static export (GitHub Pages).
+  - `backend/routers/prompts.py`: Updated `read_prompt` to allow access if prompt is public OR user is owner.
+  - `frontend/src/app/prompts/view/PromptDetailClient.tsx`: Added `isAuthLoading` state to prevent "Access Denied" flash for owners.
+  - `frontend/src/components/ui-generated/PromptModal.tsx`: Added UI toggle for setting Public/Private status during prompt creation/edit.
+- **Reason**: Enable static site deployment, fix private prompt visibility, fix local dev environment, ensure data integrity, and provide UI for visibility control.
+- **Impact**: Automated deployment, correct access control, working local dev server, correctly saved prompt details, compatibility with static hosting, and user control over prompt visibility.
 
 ## [2025-12-01] Fix Runtime Errors & Update Validation
 - **Changed**:
