@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025-12-01] Deployment Setup & Bug Fixes
+- **Changed**:
+  - `frontend/next.config.ts`: Configured for GitHub Pages export (`output: 'export'`, `basePath`).
+  - `.github/workflows/deploy.yml`: Added GitHub Actions workflow for automated deployment.
+  - `frontend/src/features/prompts/api.ts`: Added data mapping to convert backend `snake_case` to frontend `camelCase`.
+  - `frontend/src/app/prompts/[id]/page.tsx`: Removed unused `useUserStore` import.
+- **Reason**: Enable static site deployment and fix private prompt visibility issues for authors.
+- **Impact**: Automated deployment to GitHub Pages and correct access control for private prompts.
+
 ## [2025-12-01] Fix Runtime Errors & Update Validation
 - **Changed**:
   - `frontend/src/components/ui-generated/PromptModal.tsx`: Fixed `jobCategories` map error and updated validation logic for Assistance Mode.
