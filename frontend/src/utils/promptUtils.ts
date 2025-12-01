@@ -162,16 +162,36 @@ export const assemblePrompt = (structure: any, variables?: any) => {
   let assembledText = '';
 
   // Persona 섹션 처리
-  if (structure.profile) assembledText += `Role: ${structure.profile}\n`;
-  if (structure.intent) assembledText += `Goal: ${structure.intent}\n\n`;
+  const profile = structure.persona?.profile || structure.profile;
+  const intent = structure.persona?.intent || structure.intent;
 
-  // 나머지 섹션 처리
-  if (structure.context) assembledText += `Context:\n${structure.context}\n\n`;
-  if (structure.task) assembledText += `Task:\n${structure.task}\n\n`;
-  if (structure.constraints) assembledText += `Constraints:\n${structure.constraints}\n\n`;
-  if (structure.format) assembledText += `Output Format:\n${structure.format}`;
+  if (profile) assembledText += `Role: ${profile}\n`;
+  if (intent) assembledText += `Goal: ${intent}\n\n`;
 
-  return assembledText;
+  // Asset 섹션
+  const knowledgeBase = structure.asset?.knowledgeBase;
+  const styleGuide = structure.asset?.styleGuide;
+
+  if (knowledgeBase) assembledText += `Knowledge Base:\n${knowledgeBase}\n\n`;
+  if (styleGuide) assembledText += `Style Guide:\n${styleGuide}\n\n`;
+
+  // Instruction 섹션
+  const context = structure.instruction?.context || structure.context;
+  const task = structure.instruction?.task || structure.task;
+  const constraints = structure.instruction?.constraints || structure.constraints;
+
+  if (context) assembledText += `Context:\n${context}\n\n`;
+  if (task) assembledText += `Task:\n${task}\n\n`;
+  if (constraints) assembledText += `Constraints:\n${constraints}\n\n`;
+
+  // Result 섹션
+  const format = structure.result?.format || structure.format;
+  const example = structure.result?.example;
+
+  if (format) assembledText += `Output Format:\n${format}\n\n`;
+  if (example) assembledText += `Example:\n${example}`;
+
+  return assembledText.trim();
 };
 
 // [추가] 프롬프트에서 변수 추출 ({{variable}})

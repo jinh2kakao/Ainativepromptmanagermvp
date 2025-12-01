@@ -72,14 +72,11 @@ export function PromptModal({ prompt, onSave, onClose }: PromptModalProps) {
                 finalTitle = firstLine.substring(0, 20) + (firstLine.length > 20 ? '...' : '');
             }
         } else {
-            // Assistance Mode Validation: Check if at least one field is filled
-            const hasAssistanceContent = ['persona', 'asset', 'instruction', 'result'].some(sectionKey => {
-                const section = (assistanceStructure as any)[sectionKey];
-                return section && Object.values(section).some((val: any) => typeof val === 'string' && val.trim().length > 0);
-            });
+            // Assistance Mode Validation: Check if Profile is filled
+            const hasProfile = (assistanceStructure?.persona?.profile || '').trim().length > 0;
 
-            if (!hasAssistanceContent) {
-                alert('최소 1개 이상의 항목을 입력해주세요 (Profile, Intent 등)');
+            if (!hasProfile) {
+                alert('Profile (페르소나) 내용을 입력해주세요');
                 return;
             }
 
