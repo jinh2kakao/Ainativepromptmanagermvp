@@ -52,7 +52,7 @@ docker run -d \
   -e SMTP_SERVER=smtp.gmail.com \
   -e SMTP_PORT=587 \
   -e SMTP_USER=jinh2kakao@gmail.com \
-  -e SMTP_PASSWORD=wltwxaitnlbcncoy \
+  -e SMTP_PASSWORD=[패스워드] \
   <이미지_이름>
 ```
 
