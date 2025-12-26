@@ -1,5 +1,6 @@
 # 개발의 미래를 미리보다 - Google Antigravity 체험기 (Future of Dev)
 ![Antigravity Cover](../linkedin_assets/antigravity_cover.png)
+
 "IDE가 아니라, 에이전트 운영체제(OS)다."
 최근 혼자서 `Prompt Manager`라는 프로덕트를 바닥부터 개발하며(0 to 1), 가장 절실하게 느꼈던 갈증들이 있습니다. 그런데 놀랍게도, 그 갈증을 정확히 해소해주는 제품이 구글에서 발표되었습니다. 바로 **Antigravity**입니다.
 최근 구글이 발표한 Antigravity를 보며, 제가 이 프로덕트를 만들며 했던 고민들이 어떻게 기술적으로 구현되었는지 소름 돋는 포인트 3가지를 정리해봤습니다.
