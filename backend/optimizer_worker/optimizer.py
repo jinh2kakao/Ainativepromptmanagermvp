@@ -5,21 +5,30 @@ import google.generativeai as genai
 from dspy.teleprompt import MIPROv2
 
 # Custom Adapter for Google Generative AI (Bypassing Litellm/DSPy built-in if flaky)
+
+# Custom Adapter for Google Generative AI (Bypassing Litellm/DSPy built-in if flaky)
 class GeminiLM(dspy.LM):
     def __init__(self, model_name="models/gemini-1.5-flash", api_key=None):
         super().__init__(model=model_name)
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY is not set. Please check your .env file or environment variables.")
-            
-        genai.configure(api_key=self.api_key)
-        self.genai_model = genai.GenerativeModel(model_name)
+        # Lazy Check: Don't raise here to allow instantiation
+        if self.api_key:
+             genai.configure(api_key=self.api_key)
+             self.genai_model = genai.GenerativeModel(model_name)
+        else:
+             self.genai_model = None
+             
         self.provider = "google"
 
 
     # Override simple basic_request is not enough if base class calls litellm in request()
     def __call__(self, prompt=None, **kwargs):
+        if not self.genai_model:
+             print("Gemini Error: API Key not configured.")
+             # Raise error here so the optimization job fails gracefully instead of app crash
+             raise ValueError("GEMINI_API_KEY is not set. Cannot perform optimization.")
+
         # Handle cases where prompt is passed as keyword or positional
         if prompt is None:
             prompt = kwargs.get("prompt")
@@ -40,7 +49,7 @@ class GeminiLM(dspy.LM):
                             content_parts.append(str(m['content']))
                         else:
                             content_parts.append(str(m))
-                    prompt = "\n\n".join(content_parts)
+                    prompt = "\\n\\n".join(content_parts)
                 else:
                     prompt = str(msgs)
         
@@ -55,12 +64,8 @@ class GeminiLM(dspy.LM):
             print(f"Gemini Error: {e}")
             return []
 
-# Configure DSPy with Gemini Flash Latest using Custom Adapter
-try:
-    gemini_flash = GeminiLM(model_name="gemini-flash-latest")
-    dspy.configure(lm=gemini_flash)
-except Exception as e:
-    print(f"Warning: DSPy not configured correctly. {e}")
+# NOTE: Removed global dspy.configure to prevent startup crash if key missing
+
 
 # Gold Set / Bootstrap Data for MIPROv2
 GOLD_SET = [
@@ -125,6 +130,17 @@ class OptimizePromptSignature(dspy.Signature):
 
 class PromptOptimizer:
     def __init__(self):
+        # Lazy Configuration of DSPy
+        # Try to configure if not already configured or just re-configure safely
+        try:
+             gemini_flash = GeminiLM(model_name="gemini-flash-latest")
+             # Only configure if we have a valid model (and key) - but GeminiLM now always returns object
+             # Check if key is present via private attribute or just configure
+             # dspy.configure is lightweight, safe to call multiple times or overwrite
+             dspy.configure(lm=gemini_flash)
+        except Exception as e:
+             print(f"Warning: DSPy configuration failed (likely no API KEY). Optimization will fail if attempted. Error: {e}")
+
         # Using ChainOfThought initially
         self.cot = dspy.ChainOfThought(OptimizePromptSignature)
         
