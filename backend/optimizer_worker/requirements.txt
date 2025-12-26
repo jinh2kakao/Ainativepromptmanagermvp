@@ -1,0 +1,6 @@
+dspy-ai
+google-generativeai
+sqlalchemy
+psycopg2-binary
+python-dotenv
+sqlmodel

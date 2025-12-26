@@ -1,0 +1,60 @@
+name: UI/UX QA Automation
+description: Automated visual regression testing for Responsive UI across multiple devices using Native Browser Control.
+
+# 1. Trigger Definition
+on:
+  workflow_dispatch: # Manual trigger by developer
+  preview:
+    types: [ready] # Trigger when a preview environment is ready
+
+# 2. Global Environment Context
+env:
+  BASE_URL: ${{ ENV.PREVIEW_URL }}
+  ARTIFACT_PATH: .antigravity/artifacts/qa-reports/${{ EXECUTION_ID }}
+
+# 3. Steps (Native Modules)
+steps:
+  - name: Initialize Headless Browser
+    uses: browser:init
+    with:
+      headless: true
+      network_idle_timeout: 1000 # Wait for 1s of network quiescence
+
+  - name: Responsive Viewport Check
+    uses: control:loop
+    with:
+      items:
+        - { name: "Mobile", width: 375, height: 812 }
+        - { name: "Tablet", width: 768, height: 1024 }
+        - { name: "Desktop", width: 1920, height: 1080 }
+    do:
+      - name: Set Viewport
+        uses: browser:set_viewport
+        with:
+          width: ${{ item.width }}
+          height: ${{ item.height }}
+
+      - name: Navigate to Page
+        uses: browser:goto
+        with:
+          url: ${{ env.BASE_URL }}
+          wait_until: domcontentloaded
+
+      - name: Wait for Content
+        uses: browser:wait_for_selector
+        with:
+          selector: "#main-content"
+          timeout: 10000
+
+      - name: Capture Screenshot
+        uses: browser:screenshot
+        with:
+          path: ${{ env.ARTIFACT_PATH }}/${{ item.name }}_snapshot.png
+          full_page: true
+
+  - name: Generate QA Report
+    uses: report:generate
+    with:
+      title: "UI/UX QA Report - ${{ EXECUTION_ID }}"
+      files: ${{ env.ARTIFACT_PATH }}/*.png
+      output: ${{ env.ARTIFACT_PATH }}/report.json

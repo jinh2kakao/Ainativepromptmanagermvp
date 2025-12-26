@@ -1,0 +1,80 @@
+name: 백엔드 EC2 배포 (Deploy Backend to EC2)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'backend/**'  # 백엔드 파일이 변경될 때만 실행
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    name: 빌드 및 배포 (Build & Deploy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: 코드 체크아웃 (Checkout)
+        uses: actions/checkout@v3
+
+      - name: 이미지 이름 소문자 변환 (Lowercase Image Name)
+        run: |
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+
+      - name: GHCR 로그인 (Login to GHCR)
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Buildx 설치 (Set up Docker Buildx)
+        uses: docker/setup-buildx-action@v2
+
+      - name: 도커 이미지 빌드 및 GHCR 업로드 (Build & Push)
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: EC2에 배포 (Deploy to EC2)
+        uses: appleboy/ssh-action@v0.1.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: GITHUB_TOKEN,REGISTRY,IMAGE_NAME,GITHUB_ACTOR,GEMINI_API_KEY
+          script: |
+            echo "Starting Deployment..."
+            
+            # GHCR 로그인 (GITHUB_TOKEN 사용)
+            echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+            
+            # 최신 이미지 다운로드 (Pull)
+            docker pull $REGISTRY/$IMAGE_NAME:latest
+            
+            # 기존 컨테이너 중지 및 삭제
+            docker stop backend || true
+            docker rm backend || true
+            
+            # 새 컨테이너 실행 (GEMINI_API_KEY가 있으면 주입, 없으면 .env 사용)
+            if [ ! -z "$GEMINI_API_KEY" ]; then
+              echo "Injecting GEMINI_API_KEY from Secrets..."
+              docker run -d -p 8000:8000 --env-file .env -e GEMINI_API_KEY=$GEMINI_API_KEY --name backend $REGISTRY/$IMAGE_NAME:latest
+            else
+              echo "Using GEMINI_API_KEY from server .env file..."
+              docker run -d -p 8000:8000 --env-file .env --name backend $REGISTRY/$IMAGE_NAME:latest
+            fi
+            
+            echo "Deployment Completed!"
