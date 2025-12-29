@@ -249,6 +249,7 @@ export default function PromptListContainer() {
 
                             <div className="relative w-full sm:w-auto">
                                 <button
+                                    id="tour-dashboard-create-btn"
                                     onClick={handleCreate}
                                     disabled={!canCreate}
                                     className={`w-full sm:w-auto px-4 md:px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 text-sm md:text-base min-h-[44px] ${canCreate

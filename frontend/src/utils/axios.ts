@@ -45,10 +45,69 @@ const attachAuthHeaders = async (config: InternalAxiosRequestConfig) => {
             config.headers.Authorization = `Bearer ${qaToken}`;
         } else if (typeof window !== 'undefined') {
             let guestId = getStorageItem('guest_id');
+            const guestIdCreatedAt = getStorageItem('guest_id_created_at');
+
+            // Helper to parsing YYYYMMDDHHmmss
+            const parseGuestDate = (dateStr: string): Date | null => {
+                if (!dateStr || dateStr.length !== 14) return null;
+                const year = parseInt(dateStr.substring(0, 4), 10);
+                const month = parseInt(dateStr.substring(4, 6), 10) - 1;
+                const day = parseInt(dateStr.substring(6, 8), 10);
+                const hour = parseInt(dateStr.substring(8, 10), 10);
+                const minute = parseInt(dateStr.substring(10, 12), 10);
+                const second = parseInt(dateStr.substring(12, 14), 10);
+                return new Date(year, month, day, hour, minute, second);
+            };
+
+            // Helper to format Date to YYYYMMDDHHmmss
+            const formatDateToYYYYMMDDHHMMSS = (date: Date): string => {
+                const pad = (num: number) => num.toString().padStart(2, '0');
+                const year = date.getFullYear();
+                const month = pad(date.getMonth() + 1);
+                const day = pad(date.getDate());
+                const hour = pad(date.getHours());
+                const minute = pad(date.getMinutes());
+                const second = pad(date.getSeconds());
+                return `${year}${month}${day}${hour}${minute}${second}`;
+            };
+
+            // Check for expiration (7 days)
+            if (guestId && guestIdCreatedAt) {
+                let createdDate: Date | null = null;
+
+                // Fallback for legacy timestamp (Date.now())
+                if (guestIdCreatedAt.length !== 14 && /^\d+$/.test(guestIdCreatedAt)) {
+                    createdDate = new Date(parseInt(guestIdCreatedAt, 10));
+                } else {
+                    createdDate = parseGuestDate(guestIdCreatedAt);
+                }
+
+                if (createdDate) {
+                    const now = Date.now();
+                    const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+
+                    if (now - createdDate.getTime() > sevenDaysInMs) {
+                        console.log('Guest ID expired, clearing...');
+                        localStorage.removeItem('guest_id');
+                        localStorage.removeItem('guest_id_created_at');
+                        guestId = null;
+                    }
+                } else {
+                    // Invalid date format, clear it
+                    localStorage.removeItem('guest_id');
+                    localStorage.removeItem('guest_id_created_at');
+                    guestId = null;
+                }
+            } else if (guestId && !guestIdCreatedAt) {
+                // If (legacy) guestId exists but no timestamp, set it now
+                setStorageItem('guest_id_created_at', formatDateToYYYYMMDDHHMMSS(new Date()));
+            }
+
             if (!guestId) {
                 try {
                     guestId = crypto.randomUUID();
                     setStorageItem('guest_id', guestId);
+                    setStorageItem('guest_id_created_at', formatDateToYYYYMMDDHHMMSS(new Date()));
                 } catch (e) {
                     console.warn("Storage/Crypto error in axios interceptor", e);
                 }

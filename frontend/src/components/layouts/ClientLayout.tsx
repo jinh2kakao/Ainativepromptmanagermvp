@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/ui-generated/Sidebar';
 import { useUIStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/features/auth/store';
 import { supabase } from '@/utils/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { SettingsPage } from '@/components/ui-generated/settings/SettingsPage';
 import { PricingModal } from '@/components/ui-generated/PricingModal';
 import { UserType } from '@/types';
@@ -18,6 +19,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const { isSidebarCollapsed, toggleMobileMenu } = useUIStore();
     const { user: authUser, setSession, setInitialized } = useAuthStore();
+    const queryClient = useQueryClient();
 
     // Global Auth Listener
     useEffect(() => {
@@ -51,6 +53,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                             const { migrateGuestData } = await import('@/features/auth/api');
                             await migrateGuestData(guestId);
                             localStorage.removeItem('guest_id');
+                            localStorage.removeItem('guest_id_created_at');
                             console.log('Global: Guest data migrated successfully');
                         } catch (migrationError) {
                             console.error('Global: Failed to migrate guest data:', migrationError);
@@ -69,6 +72,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
             setSession(session);
 
+            if (_event === 'SIGNED_OUT') {
+                console.log('Global: Sign out detected, clearing and resetting query cache');
+                queryClient.removeQueries();
+                await queryClient.resetQueries();
+            }
+
             // Also check migration on auth state change (e.g. login)
             if (session && typeof window !== 'undefined') {
                 const guestId = localStorage.getItem('guest_id');
@@ -77,6 +86,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                         const { migrateGuestData } = await import('@/features/auth/api');
                         await migrateGuestData(guestId);
                         localStorage.removeItem('guest_id');
+                        localStorage.removeItem('guest_id_created_at');
                         console.log('Global: Guest data migrated successfully (onAuthStateChange)');
                     } catch (error) {
                         console.error('Global: Failed to migrate guest data:', error);

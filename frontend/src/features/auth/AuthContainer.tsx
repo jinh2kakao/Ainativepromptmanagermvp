@@ -71,8 +71,10 @@ export default function AuthContainer() {
     const handleSignUp = async (email: string, password: string): Promise<void> => {
         try {
             // 1. 이메일 중복 확인 (Backend DB Check)
-            const exists = await checkEmailExists(email);
-            if (exists) {
+            const checkResult = await checkEmailExists(email);
+            // console.log("DEBUG: checkResult", checkResult); // Optional: keep or remove. I'll remove as per 'clean' instruction.
+
+            if (checkResult.exists) {
                 await alert('이미 가입된 이메일입니다. 로그인할 수 있도록 이동합니다.');
                 setMode('login');
                 return;
@@ -83,7 +85,7 @@ export default function AuthContainer() {
                 email,
                 password,
             });
-            console.log('SignUp Debug - Response:', { data, error });
+            // console.log('SignUp Debug - Response:', { data, error });
             if (error) throw error;
 
             await alert('회원가입 성공! 이메일을 확인하여 인증을 완료해주세요.');

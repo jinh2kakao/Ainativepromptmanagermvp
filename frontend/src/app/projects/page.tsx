@@ -7,6 +7,7 @@ import { Plus, Folder, Clock, MoreVertical, Edit, Trash2, AlertTriangle, Buildin
 import { Project } from '@/types/project';
 import { useTeamStore } from '@/stores/teamStore';
 import { useTeams } from '@/features/teams/useTeamHooks';
+import { useAuthStore } from '@/features/auth/store';
 
 export default function ProjectsPage() {
     const router = useRouter();
@@ -17,7 +18,10 @@ export default function ProjectsPage() {
     // Context
     const { currentTeamId } = useTeamStore();
     const { data: teams } = useTeams();
+
     const currentTeam = teams?.find(t => t.id === currentTeamId);
+
+    const { session } = useAuthStore();
 
     // Dropdown State
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -30,7 +34,9 @@ export default function ProjectsPage() {
     // Form State (Shared for Create/Edit)
     const [projectTitle, setProjectTitle] = useState('');
     const [projectDesc, setProjectDesc] = useState('');
+
     const [showProjectModal, setShowProjectModal] = useState(false);
+    const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -62,6 +68,10 @@ export default function ProjectsPage() {
     };
 
     const handleOpenCreate = () => {
+        if (!session) {
+            setShowGuestLimitModal(true);
+            return;
+        }
         setEditingProject(null);
         setProjectTitle('');
         setProjectDesc('');
@@ -312,6 +322,36 @@ export default function ProjectsPage() {
                                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                             >
                                 Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Guest Limit Modal */}
+            {showGuestLimitModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl animate-in fade-in zoom-in duration-200">
+                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <User className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 text-center mb-2">회원가입 필요</h3>
+                        <p className="text-sm text-gray-500 text-center mb-6">
+                            프로젝트 생성은 회원가입 후 이용 가능합니다.<br />
+                            로그인 또는 회원가입을 해주세요.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowGuestLimitModal(false)}
+                                className="flex-1 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={() => router.push('/auth')}
+                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                로그인 / 회원가입
                             </button>
                         </div>
                     </div>

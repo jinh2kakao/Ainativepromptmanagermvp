@@ -83,8 +83,8 @@ export function SignUpForm({ onSwitchToLogin, onSignUpSuccess, onSignUp }: SignU
 
     try {
       // 1. Check if email already exists
-      const exists = await checkEmailExists(email);
-      if (exists) {
+      const checkResult = await checkEmailExists(email);
+      if (checkResult.exists) {
         await alert('이미 가입된 이메일입니다. 로그인할 수 있도록 이동합니다.');
         onSwitchToLogin();
         return;

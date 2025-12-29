@@ -38,12 +38,10 @@ def read_prompts(
 ):
     from sqlmodel import or_
 
-    # User request: Should see their own prompts AND public prompts
+    # User request: Should ONLY see their own prompts in "My Prompts" view
+    # Public prompts should be fetched via a separate Discovery/Community endpoint if needed.
     statement = select(Prompt).where(
-        or_(
-            Prompt.owner_id == current_user.id,
-            Prompt.is_public == True
-        )
+        Prompt.owner_id == current_user.id
     ).order_by(Prompt.created_at.desc()).offset(skip).limit(limit)
     
     prompts = session.exec(statement).all()
@@ -80,6 +78,8 @@ def read_prompt(
     if current_user.role == UserRole.ADMIN:
         statement = select(Prompt).where(Prompt.id == prompt_id)
     else:
+        # For individual prompt view, we still allow seeing public prompts
+        # This supports sharing links
         statement = select(Prompt).where(
             Prompt.id == prompt_id,
             or_(Prompt.owner_id == current_user.id, Prompt.is_public == True)

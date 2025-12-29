@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 
+## [2025-12-29] v3.4.0 - Guest Experience & Reliability
+- **Changed**:
+  - **Guest User Experience**:
+    - **Session Duration**: Extended Guest session expiration from 1 day to **7 days** to allow longer trial periods.
+    - **Data Persistence**: Implemented `YYYYMMDDHHmmss` timestamp format for robust session tracking.
+    - **Migration**: Strengthened data migration logic. Guest data (Prompts, Projects) is now reliably transferred to the permanent account upon Sign Up/Login, and guest remnants are immediately cleaned up to prevent stale data.
+    - **Project Creation**: Guest users are now prompted to Sign Up/Log In when attempting to create a "New Project", encouraging conversion.
+  - **Bug Fixes**:
+    - **Sign Up Logic**: Fixed a critical false positive where valid emails were blocked with "Already registered" due to a boolean logic error in frontend API response handling.
+    - **Product Tour**: Fixed the "X" (Close) button behavior to dismiss the tour without triggering the completion callback (which caused unwanted redirects).
+    - **Guest Dashboard**: Resolved an issue where the "New Prompt" tour overlay appeared empty for guest users by ensuring the target button has a stable ID.
+    - **Prompt Leak**: Fixed a backend security issue where migrated (public) prompts were still visible in the Guest's "My Prompts" list.
+- **Reason**: To significantly improve the first-time user experience (FTUX), drive user conversion through project restrictions, and resolve critical onboarding friction points.
+- **Impact**:
+  - **Conversion**: Seamless transition from Guest to Member.
+  - **Onboarding**: Bug-free product tour and sign-up flow.
+  - **Stability**: Accurate session management and data isolation.
+
 ## [2025-12-23] v3.3.3 - Production Reliability: API Key Management
 - **Fixed**:
   - **Gemini API Connectivity**: Resolved a critical production issue where the AI Optimization service returned `500 Internal Server Error` due to an expired/invalid `GEMINI_API_KEY`.

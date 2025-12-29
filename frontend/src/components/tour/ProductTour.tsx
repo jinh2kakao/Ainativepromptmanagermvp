@@ -119,18 +119,18 @@ export function ProductTour({
         if (currentStep < steps.length - 1) {
             setCurrentStep(prev => prev + 1);
         } else {
-            finishTour();
+            finishTour(true);
         }
     };
 
-    const finishTour = () => {
+    const finishTour = (shouldTriggerOnFinish: boolean = true) => {
         setIsVisible(false);
         localStorage.setItem(storageKey, 'true');
-        if (onFinish) onFinish();
+        if (shouldTriggerOnFinish && onFinish) onFinish();
     };
 
     const skipTour = () => {
-        finishTour();
+        finishTour(false);
     };
 
     // Auto-scroll to target on step change
