@@ -149,6 +149,7 @@ use library /vercel/next.js for routing docs
 ---
 ## 📋 버전 히스토리
 현재 버전의 주요 기능:
+- v3.4.0: Guest Experience & Reliability
 - v3.3.x: Community Features, Template System, Email Verification
 - v3.2.0: Applicable AI Agents
 - v2.1.0: Project Crucible (Canvas Editor)

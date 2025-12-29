@@ -86,4 +86,13 @@ If clicking "Optimize" or "Evaluate" results in a `500 Internal Server Error` or
     *   Test the key locally using the Gemini API console or a simple Python script.
 3.  **Update Key in Production:**
     *   **GitHub Secrets:** Go to Settings > Secrets and variables > Actions. Update `GEMINI_API_KEY`.
-    *   **Redeploy:** Push a commit or manually trigger the deployment workflow to ensure the backend container picks up the new secret.
+## 7. False Positive "Already Registered" Error
+If users report they cannot sign up ("Already registered") AND cannot log in ("User not found"):
+
+1.  **Check Frontend Logic:**
+    *   **Cause:** The frontend might be treating the API response object (e.g., `{ exists: false }`) as a boolean. In JavaScript, non-null objects are Truthy.
+    *   **Fix:** Ensure you check the specific property: `if (response.exists)` instead of `if (response)`.
+
+2.  **Verify Database:**
+    *   Check `backend/routers/auth.py` logs or run a direct DB query to confirm if the user really exists.
+
