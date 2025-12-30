@@ -42,6 +42,41 @@ class User(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     prompts: List["Prompt"] = Relationship(back_populates="owner")
+    
+    # We might want to back-populate projects too if needed
+    # We might want to back-populate projects too if needed
+    projects: List["Project"] = Relationship(
+        back_populates="owner",
+        sa_relationship_kwargs={
+            "primaryjoin": "User.id==Project.owner_id", 
+            "lazy": "select"
+        }
+    )
+    
+    # Cascade delete for team memberships
+    team_memberships: List["TeamMember"] = Relationship(
+        back_populates="user", 
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+    
+    # Cascade delete for other content
+    audit_logs: List["AuditLog"] = Relationship(back_populates="admin", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    notices: List["Notice"] = Relationship(back_populates="author", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    inquiries: List["Inquiry"] = Relationship(back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    inquiry_comments: List["InquiryComment"] = Relationship(back_populates="author", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+
+class WithdrawnUser(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True) # New unique ID for archive record
+    original_user_id: uuid.UUID # Store the original User ID
+    email: str # Store original email (hashed if needed, but for MVP plain/masked)
+    migrated_email: Optional[str] = None # If we want to store a unique placeholder
+    original_joined_at: datetime
+    withdrawn_at: datetime = Field(default_factory=datetime.utcnow)
+    reason: Optional[str] = None
+    prompt_count: int = 0
+    project_count: int = 0
+    backup_data: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+
 
 class UserRead(SQLModel):
     id: uuid.UUID
@@ -70,6 +105,8 @@ class Prompt(SQLModel, table=True):
     category: Optional[str] = None
     sub_category: Optional[str] = None
     is_public: bool = Field(default=False)
+    is_deleted: bool = Field(default=False) # Soft delete flag
+
     
     # JSON fields
     structure: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
@@ -154,6 +191,7 @@ class PromptTemplate(SQLModel, table=True):
 class AuditLog(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     admin_id: uuid.UUID = Field(foreign_key="user.id")
+    admin: Optional["User"] = Relationship(back_populates="audit_logs")
     action: str
     target_id: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
@@ -175,7 +213,7 @@ class TeamMember(SQLModel, table=True):
     joined_at: datetime = Field(default_factory=datetime.utcnow)
 
     team: Team = Relationship(back_populates="members")
-    # user relationship can be added if needed, skipping for now to avoid circular dependency issues if User model isn't updated to back-populate
+    user: Optional["User"] = Relationship(back_populates="team_memberships")
 
 
 # Project Models
@@ -183,9 +221,17 @@ class Project(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     title: str
     description: Optional[str] = None
-    owner_id: uuid.UUID = Field(foreign_key="user.id")
+    owner_id: Optional[uuid.UUID] = Field(default=None, foreign_key="user.id")
+    owner: Optional["User"] = Relationship(
+        back_populates="projects",
+        sa_relationship_kwargs={
+            "foreign_keys": "Project.owner_id"
+        }
+    )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    is_deleted: bool = Field(default=False) # Soft delete flag
+
     
     # v3.0.0 Team & Locking
     team_id: Optional[uuid.UUID] = Field(default=None, foreign_key="team.id")
@@ -308,6 +354,7 @@ class Notice(SQLModel, table=True):
     is_published: bool = Field(default=False)
     is_pinned: bool = Field(default=False)
     author_id: uuid.UUID = Field(foreign_key="user.id")
+    author: Optional["User"] = Relationship(back_populates="notices")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
@@ -337,6 +384,7 @@ class InquiryBase(SQLModel):
 class Inquiry(InquiryBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="user.id")
+    user: Optional["User"] = Relationship(back_populates="inquiries")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
@@ -349,6 +397,7 @@ class InquiryComment(InquiryCommentBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     inquiry_id: uuid.UUID = Field(foreign_key="inquiry.id")
     author_id: uuid.UUID = Field(foreign_key="user.id")
+    author: Optional["User"] = Relationship(back_populates="inquiry_comments")
     is_staff_reply: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     

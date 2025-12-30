@@ -23,7 +23,13 @@ export function ProfileSection({ userEmail, userName }: ProfileSectionProps) {
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [disconnectPassword, setDisconnectPassword] = useState('');
 
+  // Withdraw state
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
+  const [withdrawInput, setWithdrawInput] = useState('');
+
   const { setUser } = useAuthStore();
+
+
 
   useEffect(() => {
     setName(userName);
@@ -397,6 +403,90 @@ export function ProfileSection({ userEmail, userName }: ProfileSectionProps) {
             비밀번호 변경
           </button>
         </div>
+      </div>
+
+      {/* Account Withdrawal */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-red-100">
+        <h3 className="text-red-900 mb-2 flex items-center gap-2 font-semibold">
+          <AlertCircle className="w-5 h-5" />
+          회원 탈퇴
+        </h3>
+        <p className="text-sm text-red-700 mb-4">
+          탈퇴 시 모든 데이터(프롬프트, 프로젝트 등)는 삭제 또는 비공개 처리되며 복구할 수 없습니다.
+        </p>
+
+        {!showWithdrawConfirm ? (
+          <button
+            onClick={() => {
+              setShowWithdrawConfirm(true);
+              setWithdrawInput('');
+            }}
+            className="px-4 py-2.5 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium text-sm"
+          >
+            회원 탈퇴
+          </button>
+        ) : (
+          <div className="bg-red-50 p-4 rounded-lg animate-in fade-in">
+            <h4 className="font-bold text-red-900 mb-2">정말 탈퇴하시겠습니까?</h4>
+            <div className="space-y-3">
+              <p className="text-sm text-red-800">
+                탈퇴를 확인하기 위해 아래 입력창에 <strong>탈퇴하기</strong>를 입력해주세요.
+              </p>
+              <input
+                type="text"
+                placeholder="탈퇴하기"
+                value={withdrawInput}
+                onChange={(e) => setWithdrawInput(e.target.value)}
+                className="w-full px-3 py-2 border border-red-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setShowWithdrawConfirm(false);
+                    setWithdrawInput('');
+                  }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm"
+                >
+                  취소(유지)
+                </button>
+                <button
+                  disabled={withdrawInput !== '탈퇴하기'}
+                  onClick={async () => {
+                    if (withdrawInput !== '탈퇴하기') return;
+
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (!session) return;
+
+                      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/withdraw`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${session.access_token}`
+                        },
+                        body: JSON.stringify({ confirm: true, reason: 'User requested' })
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Withdrawal failed');
+                      }
+
+                      toast.success('회원 탈퇴가 완료되었습니다.');
+                      await supabase.auth.signOut();
+                      window.location.href = '/';
+                    } catch (e: any) {
+                      toast.error(e.message || '탈퇴 처리 중 오류가 발생했습니다.');
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  탈퇴 확인
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

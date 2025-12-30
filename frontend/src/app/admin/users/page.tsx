@@ -19,14 +19,29 @@ interface User {
     project_count: number;
 }
 
+interface WithdrawnUser {
+    id: string;
+    email: string;
+    migrated_email?: string;
+    original_joined_at: string;
+    withdrawn_at: string;
+    reason?: string;
+    prompt_count: number;
+    project_count: number;
+}
+
+
 function UserManagementContent() {
     const searchParams = useSearchParams();
     const initialSearch = searchParams.get('search') || '';
 
     const [users, setUsers] = useState<User[]>([]);
+    const [withdrawnUsers, setWithdrawnUsers] = useState<WithdrawnUser[]>([]);
+    const [activeTab, setActiveTab] = useState<'active' | 'withdrawn'>('active');
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState(initialSearch);
     const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin'>('all');
+
 
     // Modal States
     const [confirmModal, setConfirmModal] = useState<{
@@ -57,12 +72,23 @@ function UserManagementContent() {
     const fetchUsers = async () => {
         try {
             setIsLoading(true);
-            const params: any = {};
-            if (searchTerm) params.email = searchTerm;
-            if (roleFilter !== 'all') params.role = roleFilter;
 
-            const response = await api.get('/api/admin/users', { params });
-            setUsers(response.data);
+            if (activeTab === 'active') {
+                const params: any = {};
+                if (searchTerm) params.email = searchTerm;
+                if (roleFilter !== 'all') params.role = roleFilter;
+
+                const response = await api.get('/api/admin/users', { params });
+                setUsers(response.data);
+            } else {
+                // Withdrawn Users
+                // Allow simple search if supported, otherwise just list
+                const params: any = {};
+                // if (searchTerm) ... (Backend support needed for search, assuming simple list for now)
+                const response = await api.get('/api/admin/users/withdrawn', { params });
+                setWithdrawnUsers(response.data);
+            }
+
         } catch (error) {
             toast.error('사용자 목록을 불러오는데 실패했습니다.');
             console.error('Fetch users error:', error);
@@ -71,12 +97,14 @@ function UserManagementContent() {
         }
     };
 
+
     useEffect(() => {
         const debounce = setTimeout(() => {
             fetchUsers();
         }, 300);
         return () => clearTimeout(debounce);
-    }, [searchTerm, roleFilter]);
+    }, [searchTerm, roleFilter, activeTab]);
+
 
     const handleRoleUpdate = async (userId: string, newRole: 'user' | 'admin') => {
         try {
@@ -202,144 +230,199 @@ function UserManagementContent() {
                 </div>
             </div>
 
+            {/* Tabs */}
+            <div className="flex gap-4 border-b border-gray-200 mb-6">
+                <button
+                    onClick={() => setActiveTab('active')}
+                    className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeTab === 'active'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                >
+                    활성 사용자
+                </button>
+                <button
+                    onClick={() => setActiveTab('withdrawn')}
+                    className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeTab === 'withdrawn'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                >
+                    탈퇴 회원
+                </button>
+            </div>
+
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-4 font-medium text-gray-500">사용자 정보</th>
-                                <th className="px-6 py-4 font-medium text-gray-500">등급</th>
-                                <th className="px-6 py-4 font-medium text-gray-500">만료일</th>
-                                <th className="px-6 py-4 font-medium text-gray-500">권한</th>
-                                <th className="px-6 py-4 font-medium text-gray-500">상태</th>
-                                <th className="px-6 py-4 font-medium text-gray-500 text-center">Prompts</th>
-                                <th className="px-6 py-4 font-medium text-gray-500 text-center">Projects</th>
-                                <th className="px-6 py-4 font-medium text-gray-500">가입일</th>
-                                <th className="px-6 py-4 font-medium text-gray-500 text-right">관리</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {isLoading ? (
+                    {activeTab === 'active' ? (
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
-                                        로딩 중...
-                                    </td>
+                                    <th className="px-6 py-4 font-medium text-gray-500">사용자 정보</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500">등급</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500">만료일</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500">권한</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500">상태</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500 text-center">Prompts</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500 text-center">Projects</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500">가입일</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500 text-right">관리</th>
                                 </tr>
-                            ) : users.length === 0 ? (
-                                <tr>
-                                    <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
-                                        검색 결과가 없습니다.
-                                    </td>
-                                </tr>
-                            ) : (
-                                users.map((user) => (
-                                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div>
-                                                <p className="font-medium text-gray-900">{user.name || '이름 없음'}</p>
-                                                <p className="text-gray-500">{user.email}</p>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <button
-                                                onClick={() => openGradeModal(user)}
-                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium hover:opacity-80 transition-opacity ${user.user_type === 'pro'
-                                                    ? 'bg-purple-100 text-purple-800'
-                                                    : user.user_type === 'enterprise'
-                                                        ? 'bg-indigo-100 text-indigo-800'
-                                                        : 'bg-gray-100 text-gray-800'
-                                                    }`}
-                                            >
-                                                {user.user_type.toUpperCase()}
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-500 text-xs">
-                                            {(user.user_type === 'pro' || user.user_type === 'enterprise') && user.subscription_end_date
-                                                ? new Date(user.subscription_end_date).toLocaleDateString()
-                                                : '-'}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === 'admin'
-                                                ? 'bg-blue-100 text-blue-800'
-                                                : 'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                {user.role === 'admin' && <Shield className="w-3 h-3" />}
-                                                {user.role.toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {user.is_active ? (
-                                                <span className="inline-flex items-center gap-1 text-green-600 text-xs">
-                                                    <CheckCircle className="w-3 h-3" />
-                                                    Active
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 text-red-600 text-xs">
-                                                    <XCircle className="w-3 h-3" />
-                                                    Inactive
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded-full">
-                                                {user.prompt_count}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold text-purple-700 bg-purple-100 rounded-full">
-                                                {user.project_count}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-500">
-                                            {new Date(user.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => window.open(`/admin/prompts?owner_email=${user.email}`, '_blank')}
-                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                    title="작성한 프롬프트 보기"
-                                                >
-                                                    <FileText className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleResetPassword(user.id)}
-                                                    className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
-                                                    title="비밀번호 초기화"
-                                                >
-                                                    <Key className="w-4 h-4" />
-                                                </button>
-                                                {user.role === 'user' ? (
-                                                    <button
-                                                        onClick={() => handleRoleUpdate(user.id, 'admin')}
-                                                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                        title="관리자로 승격"
-                                                    >
-                                                        <Shield className="w-4 h-4" />
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleRoleUpdate(user.id, 'user')}
-                                                        className="p-1.5 text-blue-600 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                                                        title="관리자 권한 해제"
-                                                    >
-                                                        <ShieldOff className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => handleDeleteUser(user.id)}
-                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                    title="사용자 비활성화"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                                            로딩 중...
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : users.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                                            검색 결과가 없습니다.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    users.map((user) => (
+                                        <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <p className="font-medium text-gray-900">{user.name || '이름 없음'}</p>
+                                                    <p className="text-gray-500">{user.email}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={() => openGradeModal(user)}
+                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium hover:opacity-80 transition-opacity ${user.user_type === 'pro'
+                                                        ? 'bg-purple-100 text-purple-800'
+                                                        : user.user_type === 'enterprise'
+                                                            ? 'bg-indigo-100 text-indigo-800'
+                                                            : 'bg-gray-100 text-gray-800'
+                                                        }`}
+                                                >
+                                                    {user.user_type.toUpperCase()}
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-500 text-xs">
+                                                {(user.user_type === 'pro' || user.user_type === 'enterprise') && user.subscription_end_date
+                                                    ? new Date(user.subscription_end_date).toLocaleDateString()
+                                                    : '-'}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === 'admin'
+                                                    ? 'bg-blue-100 text-blue-800'
+                                                    : 'bg-gray-100 text-gray-800'
+                                                    }`}>
+                                                    {user.role === 'admin' && <Shield className="w-3 h-3" />}
+                                                    {user.role.toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {user.is_active ? (
+                                                    <span className="inline-flex items-center gap-1 text-green-600 text-xs">
+                                                        <CheckCircle className="w-3 h-3" />
+                                                        Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-red-600 text-xs">
+                                                        <XCircle className="w-3 h-3" />
+                                                        Inactive
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded-full">
+                                                    {user.prompt_count}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold text-purple-700 bg-purple-100 rounded-full">
+                                                    {user.project_count}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-500">
+                                                {new Date(user.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => window.open(`/admin/prompts?owner_email=${user.email}`, '_blank')}
+                                                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                        title="작성한 프롬프트 보기"
+                                                    >
+                                                        <FileText className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleResetPassword(user.id)}
+                                                        className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
+                                                        title="비밀번호 초기화"
+                                                    >
+                                                        <Key className="w-4 h-4" />
+                                                    </button>
+                                                    {user.role === 'user' ? (
+                                                        <button
+                                                            onClick={() => handleRoleUpdate(user.id, 'admin')}
+                                                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                            title="관리자로 승격"
+                                                        >
+                                                            <Shield className="w-4 h-4" />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleRoleUpdate(user.id, 'user')}
+                                                            className="p-1.5 text-blue-600 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                                                            title="관리자 권한 해제"
+                                                        >
+                                                            <ShieldOff className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDeleteUser(user.id)}
+                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                        title="사용자 비활성화"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th className="px-6 py-4 font-medium text-gray-500">이메일</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500">가입일</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500">탈퇴일</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500">사유</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500 text-center">Prompts</th>
+                                    <th className="px-6 py-4 font-medium text-gray-500 text-center">Projects</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {isLoading ? (
+                                    <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">로딩 중...</td></tr>
+                                ) : withdrawnUsers.length === 0 ? (
+                                    <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">탈퇴 회원이 없습니다.</td></tr>
+                                ) : (
+                                    withdrawnUsers.map(user => (
+                                        <tr key={user.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 text-gray-900">{user.email}</td>
+                                            <td className="px-6 py-4 text-gray-500">{new Date(user.original_joined_at).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4 text-gray-500">{new Date(user.withdrawn_at).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4 text-gray-500">{user.reason || '-'}</td>
+                                            <td className="px-6 py-4 text-center">{user.prompt_count}</td>
+                                            <td className="px-6 py-4 text-center">{user.project_count}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
 

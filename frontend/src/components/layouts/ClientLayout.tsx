@@ -57,6 +57,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                             console.log('Global: Guest data migrated successfully');
                         } catch (migrationError) {
                             console.error('Global: Failed to migrate guest data:', migrationError);
+                            // Clear invalid guest_id to prevent repeated errors
+                            localStorage.removeItem('guest_id');
+                            localStorage.removeItem('guest_id_created_at');
                         }
                     }
                 }
@@ -90,6 +93,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                         console.log('Global: Guest data migrated successfully (onAuthStateChange)');
                     } catch (error) {
                         console.error('Global: Failed to migrate guest data:', error);
+                        // Prevent infinite loop of 500 errors by clearing the potentially invalid guest ID
+                        localStorage.removeItem('guest_id');
+                        localStorage.removeItem('guest_id_created_at');
                     }
                 }
             }

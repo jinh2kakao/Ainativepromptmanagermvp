@@ -31,8 +31,14 @@ class GmailService(EmailService):
         creds = None
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first time.
+        # Also check alternative path token_new.json in case main token is locked
+        token_alt_path = os.path.join(os.path.dirname(self.token_path), "token_new.json")
+        
         if os.path.exists(self.token_path):
             creds = Credentials.from_authorized_user_file(self.token_path, SCOPES)
+        elif os.path.exists(token_alt_path):
+            logger.info("Using alternative token path: token_new.json")
+            creds = Credentials.from_authorized_user_file(token_alt_path, SCOPES)
         
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:

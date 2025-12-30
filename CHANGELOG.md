@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 
+## [2025-12-30] v3.4.1 - Member Withdrawal & Auth Stability
+- **Changed**:
+  - **Member Withdrawal**:
+    - **New Feature**: Implemented account withdrawal functionality allowing users to permanently delete their account.
+    - **Data Archiving**: User data is archived to `WithdrawnUser` table before deletion for compliance purposes.
+    - **Cascade Deletion**: Added proper cascade relationships for `TeamMember`, `AuditLog`, `Notice`, `Inquiry`, and `InquiryComment` to prevent foreign key constraint errors.
+    - **Re-withdrawal Support**: Updated `WithdrawnUser` schema to use auto-generated PK (`id`) and store `original_user_id` separately, allowing same user to withdraw multiple times.
+    - **Supabase Auth Cleanup**: Withdrawal now also deletes user from Supabase Auth, enabling re-signup with the same email.
+  - **Email Verification**:
+    - **Gmail Token Handling**: Added auto-recovery logic to `auth_gmail.py` for expired tokens and support for alternative token path (`token_new.json`).
+  - **Auth Stability**:
+    - **Guest Migration**: Updated `ClientLayout.tsx` to clear invalid `guest_id` from localStorage on migration failure, preventing infinite 500 error loops.
+- **Reason**: To provide a complete account lifecycle management (including deletion) and resolve authentication edge cases.
+- **Impact**:
+  - **Compliance**: Users can now exercise their "right to delete" their account.
+  - **Stability**: Withdrawal and re-signup flows work reliably without database constraint errors.
+  - **UX**: Authentication errors are handled gracefully without blocking users.
+
 ## [2025-12-29] v3.4.0 - Guest Experience & Reliability
 - **Changed**:
   - **Guest User Experience**:

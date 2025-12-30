@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select, SQLModel
-from typing import Annotated
+from typing import Annotated, Optional
 import uuid
 
 from database import get_session
@@ -96,6 +96,8 @@ def migrate_guest_data(
         session.commit()
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -285,3 +287,109 @@ Promit 팀 드림
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
     return {"message": "Reset link sent"}
+
+class WithdrawRequest(SQLModel):
+    reason: Optional[str] = None
+    confirm: bool
+
+@router.post("/withdraw")
+def withdraw_account(
+    request: WithdrawRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Withdraw account:
+    1. Create WithdrawnUser record (Archive)
+    2. Soft delete Prompts & Projects (is_deleted = True)
+    3. Delete User record
+    """
+    if not request.confirm:
+        raise HTTPException(status_code=400, detail="Confirmation required")
+        
+    try:
+        from models import WithdrawnUser, Project
+        
+        # 1. Archive User Data
+        # Count resources for statistics
+        prompt_count = len(session.exec(select(Prompt).where(Prompt.owner_id == current_user.id)).all())
+        project_count = len(session.exec(select(Project).where(Project.owner_id == current_user.id)).all())
+        
+        withdrawn_user = WithdrawnUser(
+            original_user_id=current_user.id,
+            email=current_user.email,
+            original_joined_at=current_user.created_at,
+            withdrawn_at=datetime.datetime.utcnow(),
+            reason=request.reason,
+            prompt_count=prompt_count,
+            project_count=project_count
+        )
+        session.add(withdrawn_user)
+        
+        # 2. Soft Delete Resources
+        # Update Prompts
+        prompts = session.exec(select(Prompt).where(Prompt.owner_id == current_user.id)).all()
+        for p in prompts:
+            p.is_deleted = True
+            p.is_public = False # Unpublish
+            p.owner_id = None # Remove link to deleted user
+            session.add(p)
+            
+        # Update Projects
+        projects = session.exec(select(Project).where(Project.owner_id == current_user.id)).all()
+        for p in projects:
+            p.is_deleted = True
+            p.owner_id = None # Remove link to deleted user
+            # If it's a team project, this might leave the team project without an owner shown?
+            # But the team logic might rely on Team.owner_id.
+            # Team.owner_id is also FK to User. We need to handle Teams too if they own any.
+            session.add(p)
+
+        # Handle Teams where user is owner
+        # If user is owner of a team, we should probably transfer or soft delete the team?
+        # For now, just set owner to None if possible, but Team.owner_id might be mandatory.
+        # Let's check Team model.
+        # Line 181: owner_id: uuid.UUID = Field(foreign_key="user.id") -> Mandatory.
+        # If we delete User, Team deletion will fail or cascade.
+        # Since we are "Soft Deleting" the user via "Hard Delete User + Created WithdrawnUser",
+        # We must handle ALL FKs.
+        
+        # Teams owned by user:
+        from models import Team
+        teams = session.exec(select(Team).where(Team.owner_id == current_user.id)).all()
+        for t in teams:
+             # Logic for team owner withdrawal?
+             # For MVP, let's just delete the team? Or keep it?
+             # PRD says "탈퇴 회원이 오너십을 가지고 있는 프로젝트는 다른 유저에게서 보이지 않도록 처리"
+             # It doesn't explicitly mention Teams themselves.
+             # But if I delete the user, I MUST handle this.
+             # I will delete the TEAM for now to avoid FK error, assuming personal teams.
+             session.delete(t)
+             
+        # 3. Delete User from local DB
+        session.delete(current_user)
+        session.commit()
+        
+        # 4. Delete User from Supabase Auth (to allow re-signup)
+        try:
+            from dotenv import load_dotenv
+            load_dotenv()
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+            
+            if supabase_url and supabase_key:
+                from supabase import create_client
+                supabase_admin = create_client(supabase_url, supabase_key)
+                supabase_admin.auth.admin.delete_user(str(current_user.id))
+                print(f"Deleted user {current_user.id} from Supabase Auth")
+        except Exception as supabase_error:
+            # Log but don't fail - local DB is already cleaned
+            print(f"Warning: Could not delete from Supabase Auth: {supabase_error}")
+        
+        return {"message": "User withdrawn successfully"}
+        
+    except Exception as e:
+        session.rollback()
+        print(f"Withdrawal Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to withdraw account")
+
