@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePrompts, useCreatePrompt, useUpdatePrompt, useDeletePrompt } from './usePromptHooks';
 import { ViewMode, Prompt, UserType } from '@/types';
@@ -248,18 +249,19 @@ export default function PromptListContainer() {
                             </div>
 
                             <div className="relative w-full sm:w-auto">
-                                <button
+                                <Button
                                     id="tour-dashboard-create-btn"
                                     onClick={handleCreate}
                                     disabled={!canCreate}
-                                    className={`w-full sm:w-auto px-4 md:px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 text-sm md:text-base min-h-[44px] ${canCreate
-                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg'
+                                    size="lg"
+                                    className={`w-full sm:w-auto shadow-md hover:shadow-lg transition-all duration-200 border-0 ${canCreate
+                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
                                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                         }`}
                                 >
-                                    <Plus className="w-5 h-5" />
+                                    <Plus />
                                     New Prompt
-                                </button>
+                                </Button>
                                 {!canCreate && (
                                     <div className="absolute top-full mt-2 left-0 sm:right-0 sm:left-auto w-full sm:w-64 bg-gray-900 text-white text-xs rounded-lg p-3 z-10 shadow-xl">
                                         <p>{quotaLimit}개 프롬프트 제한에 도달했습니다.</p>

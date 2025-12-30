@@ -11,6 +11,7 @@ import { OptimizationReviewModal } from './OptimizationReviewModal';
 import { optimizePrompt, fetchPromptAnalysis, evaluatePrompt } from '@/features/prompts/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EvaluationResultModal } from './EvaluationResultModal';
+import { Button } from '@/components/ui/button';
 
 interface PromptDetailPageProps {
   prompt: Prompt;
@@ -469,35 +470,40 @@ export function PromptDetailPage({
         {canView && (
           <div className="mt-4 md:mt-6 flex items-center gap-2 md:gap-3">
             {prompt.variables.length > 0 ? (
-              <button
+              <Button
                 onClick={() => onRun(prompt)}
-                className="flex-1 md:flex-none px-4 md:px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg text-sm md:text-base min-h-[48px]"
+                size="lg"
+                className="flex-1 md:flex-none bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 border-0 shadow-md hover:shadow-lg"
               >
-                <Play className="w-4 h-4 md:w-5 md:h-5" />
+                <Play />
                 <span className="hidden sm:inline">변수 입력하고 실행</span>
                 <span className="sm:hidden">실행</span>
-              </button>
+              </Button>
             ) : (
               <>
                 {/* Evaluation Button (Moved here for separation) */}
-                <button
+                <Button
                   onClick={handleEvaluation}
                   disabled={isEvaluating}
-                  className="flex-1 md:flex-none px-4 md:px-6 py-3 bg-white text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm text-sm md:text-base min-h-[48px]"
+                  variant="outline"
+                  size="lg"
+                  className="flex-1 md:flex-none text-blue-600 border-blue-200 hover:bg-blue-50"
                 >
-                  <div className="w-4 h-4 font-bold border rounded-full flex items-center justify-center text-[10px] border-current">A</div>
+                  <div className="w-3.5 h-3.5 font-bold border rounded-full flex items-center justify-center text-[9px] border-current">A</div>
                   <span className="hidden sm:inline">설계 평가</span>
                   <span className="sm:hidden">평가</span>
-                </button>
+                </Button>
 
-                <button
+                <Button
                   onClick={handleCopyPrompt}
-                  className="flex-1 md:flex-none px-4 md:px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm text-sm md:text-base min-h-[48px]"
+                  variant="outline"
+                  size="lg"
+                  className="flex-1 md:flex-none text-gray-700 border-gray-200 hover:bg-gray-50"
                 >
-                  <Copy className="w-4 h-4 md:w-5 md:h-5" />
+                  <Copy />
                   <span className="hidden sm:inline">프롬프트 복사</span>
                   <span className="sm:hidden">복사</span>
-                </button>
+                </Button>
 
                 {/* Optimized Button with Tooltip */}
                 {isOwner && (
@@ -510,16 +516,17 @@ export function PromptDetailPage({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span tabIndex={0}> {/* Span wrapper for disabled button tooltip trigger */}
-                                <button
+                                <Button
                                   onClick={handleOptimization}
                                   disabled={isOptimizing || isHighQuality}
-                                  className={`flex-1 md:flex-none px-4 md:px-6 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg text-sm md:text-base min-h-[48px] ${isHighQuality ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:opacity-90'
+                                  size="lg"
+                                  className={`flex-1 md:flex-none bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border-0 shadow-md hover:shadow-lg ${isHighQuality ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:opacity-90'
                                     }`}
                                 >
-                                  <Wand2 className="w-4 h-4 md:w-5 md:h-5" />
+                                  <Wand2 />
                                   <span className="hidden sm:inline">AI 최적화</span>
                                   <span className="sm:hidden">최적화</span>
-                                </button>
+                                </Button>
                               </span>
                             </TooltipTrigger>
                             {isHighQuality && (

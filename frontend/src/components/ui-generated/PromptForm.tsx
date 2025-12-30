@@ -13,6 +13,7 @@ import { ProductTour } from '@/components/tour/ProductTour';
 import { jobCategories } from '@/utils/jobCategories';
 import { MultiSelectAgents } from './MultiSelectAgents';
 import { parsePairPrompt } from '@/utils/pairParser';
+import { Button } from '@/components/ui/button';
 
 interface PromptFormProps {
     prompt?: Prompt | null;
@@ -252,27 +253,30 @@ export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: P
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button
+                    <Button
                         onClick={onCancel}
                         disabled={isSubmitting}
-                        className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        variant="outline"
+                        size="lg"
+                        className="text-gray-700 border-gray-300 hover:bg-gray-50"
                     >
                         취소
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         id="tour-save-button"
                         onClick={handleSave}
                         disabled={!category || isSubmitting}
-                        className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        size="lg"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-md border-0"
                     >
                         {isSubmitting && (
-                            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg className="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                         )}
                         {prompt ? (isSubmitting ? '수정 중...' : '수정 완료') : (isSubmitting ? '생성 중...' : '생성하기')}
-                    </button>
+                    </Button>
                 </div>
             </div>
 
