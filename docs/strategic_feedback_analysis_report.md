@@ -14,7 +14,7 @@
 | 피드백 항목 | 우선순위 | 예상 공수 | ROI 평가 |
 |------------|---------|----------|---------|
 | Qwen 3 온프라미스 AI 도입 | 🔴 High Risk | 4-8주 | ⚠️ 중간 |
-| 프롬프트 뷰 통합 (List/Kanban 토글) | 🟢 Low Risk | 1-2주 | ✅ 높음 |
+| 프롬프트 뷰 통합 (List/Kanban 토글) | 🟢 Low Risk | 1주 | ✅ 높음 |
 | 대시보드 초기화면 (템플릿 노출) | 🟢 Low Risk | 1-2주 | ✅ 높음 |
 | 팀 프로젝트 시나리오 개선 | 🟡 Medium | 3-4주 | ✅ 높음 |
 
@@ -264,6 +264,48 @@ class InferenceRouter:
             return await self._call_qwen(prompt)
         return self.gemini_client(prompt)
 ```
+
+### 1.7 AWS Free Tier 검토
+
+> [!CAUTION]
+> **결론: AWS Free Tier에서 Qwen 3 운영 불가능**
+
+AWS Free Tier는 **GPU 인스턴스를 제공하지 않습니다.** t2.micro/t3.micro는 CPU 전용이며 LLM 추론에 필요한 연산 능력이 없습니다.
+
+#### 대안 방안 비교
+
+| 방안 | 비용 | 가능 여부 | 비고 |
+|------|------|----------|------|
+| **AWS Free Tier (t2/t3.micro)** | $0 | ❌ | GPU 없음, 메모리 부족 |
+| **AWS Bedrock API** | 사용량 기반 | ⚠️ | Qwen 미지원 |
+| **외부 무료 API** | $0~저렴 | ✅ 권장 | Groq, Together.ai |
+| **Google Colab Pro** | $10/월 | ✅ | T4 GPU 16GB |
+
+#### 권장 대안: 외부 API 활용
+
+| 서비스 | Qwen 지원 | 무료 크레딧 | 가격 (/1M tokens) |
+|--------|----------|------------|-------------------|
+| **Groq** | ✅ | 무료 티어 | ~$0.05 |
+| **Together.ai** | ✅ | $25 | ~$0.20 |
+| **Fireworks.ai** | ✅ | 무료 티어 | ~$0.20 |
+
+**구현 예시 (OpenAI 호환):**
+```python
+import openai
+
+client = openai.OpenAI(
+    api_key="TOGETHER_API_KEY",
+    base_url="https://api.together.xyz/v1"
+)
+
+response = client.chat.completions.create(
+    model="Qwen/Qwen2.5-7B-Instruct-Turbo",
+    messages=[{"role": "user", "content": "Optimize this prompt..."}]
+)
+```
+
+> [!TIP]
+> **현실적 권장:** 현재 Gemini API 유지가 가장 비용 효율적. Qwen 전환은 사용량 증가 시 재검토.
 
 ---
 
