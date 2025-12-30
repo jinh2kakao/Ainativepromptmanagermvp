@@ -2,7 +2,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from database import get_session
-from models import User, Prompt, Category, PromptTemplate, AuditLog, UserRole, PromptMode, UserRead, PromptRead, Project, UserType
+from models import User, Prompt, Category, PromptTemplate, AuditLog, UserRole, PromptMode, UserRead, PromptRead, Project, UserType, WithdrawnUser
+
 from dependencies import get_current_admin
 import uuid
 from datetime import datetime
@@ -46,9 +47,23 @@ def list_users(
             
         user_dict["prompt_count"] = len(prompt_count)
         user_dict["project_count"] = len(project_count)
+        user_dict["project_count"] = len(project_count)
         user_reads.append(UserRead(**user_dict))
     
     return user_reads
+
+@router.get("/users/withdrawn", response_model=List[WithdrawnUser])
+def list_withdrawn_users(
+    skip: int = 0,
+    limit: int = 100,
+    session: Session = Depends(get_session)
+):
+    """
+    List withdrawn users from archive
+    """
+    query = select(WithdrawnUser).offset(skip).limit(limit).order_by(WithdrawnUser.withdrawn_at.desc())
+    return session.exec(query).all()
+
 
 @router.patch("/users/{user_id}/role", response_model=UserRead)
 def update_user_role(user_id: uuid.UUID, role: UserRole, session: Session = Depends(get_session)):
