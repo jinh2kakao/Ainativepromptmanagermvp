@@ -12,6 +12,7 @@
 | backend/core/config.py | AI 사용 제한 설정 |
 | backend/credentials.json | Gmail API OAuth 자격 증명 |
 | backend/token.json | Gmail API 토큰 |
+| backend/token_new.json | Gmail API 대체 토큰 (v3.4.1+) |
 | .github/workflows/deploy-ec2.yml | 프로덕션 배포 파이프라인 |
 | deploy_prod.sh | EC2 배포 스크립트 |
 | ainative-key.pem | AWS EC2 SSH 키 |
@@ -121,7 +122,7 @@ GitHub Secrets 확인 (GEMINI_API_KEY, EC2_HOST, EC2_SSH_KEY)
 ### 보안 파일 (절대 커밋 금지)
 - `*.pem` - SSH 키
 - `*.key` - 개인키
-- `credentials.json`, `token.json` - OAuth 자격 증명
+- `credentials.json`, `token.json`, `token_new.json` - OAuth 자격 증명
 - `.env*` - 환경 변수
 ---
 ## 🤖 AI 규칙
@@ -149,6 +150,7 @@ use library /vercel/next.js for routing docs
 ---
 ## 📋 버전 히스토리
 현재 버전의 주요 기능:
+- v3.4.1: Member Withdrawal & Auth Stability
 - v3.4.0: Guest Experience & Reliability
 - v3.3.x: Community Features, Template System, Email Verification
 - v3.2.0: Applicable AI Agents
