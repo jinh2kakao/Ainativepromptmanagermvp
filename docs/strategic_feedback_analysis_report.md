@@ -683,8 +683,8 @@ gantt
     팀 프롬프트 라이브러리   :b1, after a2, 2w
     워크플로우 협업          :b2, after b1, 2w
     section AI Infrastructure
-    비용 모니터링 대시보드   :c1, 2025-01-06, 1w
-    Qwen PoC (조건부)       :c2, 2025-03-01, 4w
+    비용 모니터링 대시보드   :c1, 2025-01-20, 1w
+    Qwen PoC (조건부)       :c2, after b2, 4w
 ```
 
 ---
