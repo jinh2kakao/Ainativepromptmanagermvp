@@ -233,6 +233,57 @@ graph TB
 | **Phase 2** | EC2 + vLLM 환경 구축 | ~$160/월 | 2주 |
 | **Phase 3** | Spot Instance 최적화 | ~$220/월 | 지속 |
 
+#### Phase 3 상세: Spot + On-Demand 혼합 전략
+
+**Spot vs On-Demand 비교:**
+
+| 항목 | On-Demand | Spot Instance |
+|------|-----------|---------------|
+| **비용** | $1.01/시간 | ~$0.30/시간 (**70% 절감**) |
+| **안정성** | ✅ 항상 보장 | ⚠️ 2분 전 통보 후 회수 가능 |
+| **용도** | 미션 크리티컬 | 유연한 워크로드 |
+
+**혼합 아키텍처:**
+```
+┌─────────────────────────────────────────────────────────┐
+│                 Application Load Balancer               │
+└────────────────────────┬────────────────────────────────┘
+                         │
+        ┌────────────────┼────────────────┐
+        ▼                ▼                ▼
+┌───────────────┐ ┌───────────────┐ ┌───────────────┐
+│ On-Demand (1) │ │   Spot (1)    │ │   Spot (2)    │
+│ 기본 용량 보장 │ │ 비용 절감     │ │ 비용 절감     │
+│ 항상 유지     │ │ 회수 시 대체  │ │ 회수 시 대체  │
+└───────────────┘ └───────────────┘ └───────────────┘
+```
+
+**권장 구성 비율:**
+
+| 시나리오 | On-Demand | Spot | 월간 비용 | 절감율 |
+|---------|----------|------|----------|--------|
+| 보수적 | 50% | 50% | ~$470 | 35% |
+| **균형 (권장)** | 30% | 70% | ~$370 | 49% |
+| 공격적 | 20% | 80% | ~$320 | 56% |
+
+**Auto Scaling 설정:**
+```yaml
+MixedInstancesPolicy:
+  InstancesDistribution:
+    OnDemandBaseCapacity: 1          # 최소 1개 On-Demand 보장
+    OnDemandPercentageAboveBaseCapacity: 20
+    SpotAllocationStrategy: "capacity-optimized"
+  LaunchTemplate:
+    Overrides:
+      - InstanceType: g5.xlarge
+      - InstanceType: g5.2xlarge  # Spot 부족 시 대체
+```
+
+**Spot 중단 대응:**
+1. AWS가 2분 전 통보 → Graceful Shutdown
+2. ALB가 On-Demand로 트래픽 전환
+3. Auto Scaling이 새 Spot 인스턴스 요청
+
 #### 기존 인프라 연동
 
 현재 프로젝트 인프라:
@@ -627,7 +678,7 @@ gantt
     dateFormat  YYYY-MM-DD
     section Quick Wins
     프롬프트 뷰 토글        :a1, 2025-01-06, 1w
-    대시보드 템플릿 노출     :a2, after a1, 2w
+    대시보드 템플릿 노출     :a2, 2025-01-06, 2w
     section Team Features
     팀 프롬프트 라이브러리   :b1, after a2, 2w
     워크플로우 협업          :b2, after b1, 2w
