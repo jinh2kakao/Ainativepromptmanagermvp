@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/utils/axios';
 import { Plus, Folder, Clock, MoreVertical, Edit, Trash2, AlertTriangle, Building2, User } from 'lucide-react';
+import { toast } from 'sonner';
 import { Project } from '@/types/project';
 import { useTeamStore } from '@/stores/teamStore';
 import { useTeams } from '@/features/teams/useTeamHooks';
@@ -67,9 +68,20 @@ export default function ProjectsPage() {
         }
     };
 
+
+    // Permission Check
+    const myMembership = currentTeam?.members?.find(m => m.user_id === session?.user?.id);
+    // If not in a team (Personal), owner is implicitly user, so canCreate is true.
+    // If in a team, must be owner, admin, or editor.
+    const canCreate = !currentTeamId || (myMembership && ['owner', 'admin', 'editor'].includes(myMembership.role));
+
     const handleOpenCreate = () => {
         if (!session) {
             setShowGuestLimitModal(true);
+            return;
+        }
+        if (!canCreate) {
+            toast.error("You do not have permission to create projects in this team.");
             return;
         }
         setEditingProject(null);
@@ -105,6 +117,7 @@ export default function ProjectsPage() {
                 });
                 setProjects(projects.map(p => p.id === editingProject.id ? res.data : p));
                 setShowProjectModal(false);
+                toast.success('Project updated successfully');
             } else {
                 // Create new project
                 const res = await api.post('/api/projects/', {
@@ -113,11 +126,21 @@ export default function ProjectsPage() {
                     team_id: currentTeamId
                 });
                 if (res.data) {
+                    toast.success('Project created successfully');
                     router.push(`/projects/view?id=${res.data.id}`);
                 }
             }
-        } catch (error) {
-            console.error('Failed to save project', error);
+        } catch (error: any) {
+            // Only log valid errors (not expected 403s)
+            if (error.response?.status !== 403) {
+                console.error('Failed to save project', error);
+            }
+
+            if (error.response?.status === 403) {
+                toast.error('You do not have permission to create projects in this team.');
+            } else {
+                toast.error('Failed to save project. Please try again.');
+            }
         } finally {
             setIsCreating(false);
         }
@@ -129,8 +152,10 @@ export default function ProjectsPage() {
             await api.delete(`/api/projects/${deletingProject.id}`);
             setProjects(projects.filter(p => p.id !== deletingProject.id));
             setDeletingProject(null);
+            toast.success('Project deleted');
         } catch (error) {
             console.error('Failed to delete project', error);
+            toast.error('Failed to delete project');
         }
     };
 
@@ -146,13 +171,15 @@ export default function ProjectsPage() {
                     </div>
                     <p className="text-gray-500 mt-1">Manage and organize your prompt flows</p>
                 </div>
-                <button
-                    onClick={handleOpenCreate}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    New Project
-                </button>
+                {(!currentTeamId || canCreate) && (
+                    <button
+                        onClick={handleOpenCreate}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        New Project
+                    </button>
+                )}
             </div>
 
             {isLoading ? (
