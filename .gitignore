@@ -48,3 +48,6 @@ transfer_files/
 
 # Gmail OAuth Tokens (sensitive - never commit)
 backend/token_new.json
+
+# mcp
+mcp_config.json
