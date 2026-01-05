@@ -40,9 +40,11 @@
 ### 2.5 프롬프트 템플릿 (Prompt Templates)
 | 기능 ID | UI 요소 | 기능 설명 | 세부 로직 / 상호작용 |
 |:--- |:--- |:--- |:--- |
-| TMP-01 | List View | 템플릿 관리 | 검색/필터링 가능한 카드 리스트. 즐겨찾기(Pin) 기능 지원. |
-| TMP-02 | Assistance Form | 구조화된 입력 | Markdown 헤더(## Persona 등)를 파싱하여 개별 입력 필드로 분리 표시 (Custom Parser 적용) |
-| TMP-03 | Variable Input | 변수 자동 감지 | `{{variable}}` 패턴 감지 -> 입력 폼 자동 생성 -> 실행 시 치환 |
+| TMP-01 | Dashboard Grid | 인기/최근 템플릿 표시 | `/api/templates/?sortBy=popular` 호출 -> 사용량 기준 정렬 -> Pinterest 스타일 Masonry 레이아웃 |
+| TMP-02 | Template Card | 템플릿 미리보기 카드 | 카테고리 배지, 설명, 이미지 미리보기 표시. 클릭 시 상세 페이지 이동 (`/templates/detail?id=...`) |
+| TMP-03 | Detail Page | 템플릿 상세 정보 | Assistance 모드: PAIR 구조화 미리보기 (Persona/Instruction/Assets/Result). 추천 에이전트 표시. "사용하기" 버튼 |
+| TMP-04 | Assistance Form | 구조화된 입력 | Markdown 헤더(## Persona 등)를 `parsePairPrompt` 유틸로 파싱하여 개별 입력 필드로 분리 표시 |
+| TMP-05 | Variable Input | 변수 자동 감지 | `{{variable}}` 패턴 감지 -> 입력 폼 자동 생성 -> 실행 시 치환 |
 
 ## 3. 데이터 모델 요약
 - **Project Structure**: `nodes` (위치, 타입, 데이터), `edges` (연결 정보)를 JSON으로 저장.

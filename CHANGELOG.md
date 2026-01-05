@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 
 
+## [2026-01-05] v3.5.1 - Template Experience Enhancement
+- **Changed**:
+  - **Template Detail Page**:
+    - **Structured Preview**: Assistance Mode templates now display a rich, structured preview (Persona → Instruction → Assets → Result) instead of raw JSON/text, using the `parsePairPrompt` utility.
+    - **Visual Hierarchy**: Added icons (Bot, ListChecks, FileText) and color-coded sections for better readability.
+  - **Template Sorting & Display**:
+    - **Popularity Sorting**: Added `sortBy` query parameter to `/api/templates/` endpoint. Default is `popular` (sorted by usage count), with `recent` as an alternative.
+    - **Category Enrichment**: Dashboard and Templates pages now enrich template data with full category objects for accurate badge display.
+  - **Admin Console**:
+    - **Image Filter**: Added "이미지 있음/없음" filter to the Template Management page for easier content auditing.
+  - **Prompt Creation**:
+    - **Dynamic Categories**: Replaced static `jobCategories` import in `/prompts/new` with dynamic `useJobCategories` hook for real-time sync with backend.
+  - **Static Export Compatibility**:
+    - **Suspense Boundary**: Wrapped `TemplatesPage` content in `<Suspense>` to fix `useSearchParams()` CSR bailout error during static build.
+    - **Dynamic Route Removal**: Removed `/templates/[id]` route and migrated to query-parameter based `/templates/detail?id=...` for full `output: 'export'` compatibility.
+- **Reason**: To improve the template browsing experience with better visual previews, smarter sorting, and robust static export support.
+- **Impact**:
+  - **UX**: Users can quickly understand Assistance templates without reading raw content.
+  - **Content Discovery**: Popular templates surface first, helping users find proven prompts.
+  - **Admin Efficiency**: Easier to identify templates missing preview images.
+  - **Stability**: Production build on Cloudflare Pages now succeeds without errors.
+
 ## [2026-01-05] v3.5.0 - Template System Evolution & Mobile Polish
 - **Changed**:
   - **Template System**:
