@@ -39,15 +39,33 @@ def list_templates(
     category_id: Optional[uuid.UUID] = None,
     sub_category_value: Optional[str] = Query(None, alias="subCategory"),
     mode: Optional[str] = None,
+    sort_by: Optional[str] = Query("popular", alias="sortBy"),  # popular, recent
     session: Session = Depends(get_session)
 ):
-    query = select(PromptTemplate)
-    
     if sub_category_value:
         # Find category by value
         category = session.exec(select(Category).where(Category.value == sub_category_value)).first()
         if category:
             category_id = category.id
+    
+    if sort_by == "popular":
+        # Left join with TemplateUsage to get usage count, sort by count desc
+        from sqlalchemy import outerjoin
+        
+        usage_subq = (
+            select(TemplateUsage.template_id, func.count(TemplateUsage.id).label("usage_count"))
+            .group_by(TemplateUsage.template_id)
+            .subquery()
+        )
+        
+        query = (
+            select(PromptTemplate)
+            .outerjoin(usage_subq, PromptTemplate.id == usage_subq.c.template_id)
+            .order_by(desc(func.coalesce(usage_subq.c.usage_count, 0)), desc(PromptTemplate.created_at))
+        )
+    else:
+        # Default: sort by created_at desc
+        query = select(PromptTemplate).order_by(desc(PromptTemplate.created_at))
     
     if category_id:
         query = query.where(PromptTemplate.category_id == category_id)

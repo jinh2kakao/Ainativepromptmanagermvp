@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { TemplateCard } from '@/components/dashboard/TemplateCard';
 
 const fetchTemplates = async () => {
-    const res = await api.get('/api/templates/');
+    const res = await api.get('/api/templates/', { params: { sortBy: 'popular' } });
     return res.data;
 };
 
