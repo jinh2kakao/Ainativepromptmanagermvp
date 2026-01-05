@@ -184,9 +184,19 @@ class PromptTemplate(SQLModel, table=True):
     name: str = Field(default="Default Template") # Added name
     content: str # JSON string or plain text depending on mode
     applicable_agents: Optional[List[str]] = Field(default=None, sa_column=Column(JSON)) # Added field for applicable agents
+    preview_image_url: Optional[str] = Field(default=None) # [NEW] v3.5.0
     is_default: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    category: Optional["Category"] = Relationship()
+
+class TemplateUsage(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: Optional[uuid.UUID] = Field(default=None, foreign_key="user.id") # Optional for guest usage tracking if needed, but usually logged in.
+    template_id: uuid.UUID = Field(foreign_key="prompttemplate.id")
+    action_type: str # 'copy', 'view', 'run'
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class AuditLog(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)

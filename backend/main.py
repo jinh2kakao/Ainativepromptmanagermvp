@@ -51,6 +51,7 @@ async def lifespan(app: FastAPI):
                     'ALTER TABLE prompttemplate ADD COLUMN IF NOT EXISTS title VARCHAR;',
                     'ALTER TABLE prompttemplate ADD COLUMN IF NOT EXISTS name VARCHAR DEFAULT \'Default Template\';',
                     'ALTER TABLE prompttemplate ADD COLUMN IF NOT EXISTS applicable_agents JSON;',
+                    'ALTER TABLE prompttemplate ADD COLUMN IF NOT EXISTS preview_image_url TEXT;',
                 ]
                 for q in alter_queries:
                     conn.execute(text(q))
@@ -66,8 +67,8 @@ async def lifespan(app: FastAPI):
     # Start the worker loop in a separate thread
     # Daemon thread ensures it dies when main process dies
     worker_thread = threading.Thread(target=worker_loop, daemon=True)
-    worker_thread.start()
-    print("Optimization Worker thread started within Main App.")
+    # worker_thread.start() # Temporarily disabled for debugging
+    print("Optimization Worker thread started within Main App (Disabled).")
     
     yield
 

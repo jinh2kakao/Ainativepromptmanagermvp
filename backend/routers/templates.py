@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func, desc, SQLModel
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
 
 from database import get_session
-from models import PromptTemplate, ProjectTemplate, User, UserRole, Category
+from models import PromptTemplate, ProjectTemplate, User, UserRole, Category, TemplateUsage
 from dependencies import get_current_user, get_current_admin
 
 router = APIRouter(
@@ -13,6 +13,23 @@ router = APIRouter(
     tags=["templates"],
     responses={404: {"description": "Not found"}},
 )
+
+# Response Models
+from models import CategoryRead, PromptMode
+
+class PromptTemplateRead(SQLModel):
+    id: uuid.UUID
+    category_id: Optional[uuid.UUID]
+    mode: PromptMode
+    title: Optional[str]
+    name: str
+    content: str
+    applicable_agents: Optional[List[str]]
+    preview_image_url: Optional[str]
+    is_default: bool
+    created_at: datetime
+    updated_at: datetime
+    category: Optional[CategoryRead] = None
 
 # --- Prompt Templates ---
 
@@ -38,6 +55,123 @@ def list_templates(
         query = query.where(PromptTemplate.mode == mode)
 
     return session.exec(query).all()
+
+@router.get("/stats/popular", response_model=List[PromptTemplate])
+def get_popular_templates(
+    limit: int = 6,
+    session: Session = Depends(get_session)
+):
+    # 1. Get IDs from TemplateUsage sorted by count desc
+    subquery = (
+        select(TemplateUsage.template_id, func.count(TemplateUsage.id).label("count"))
+        .group_by(TemplateUsage.template_id)
+        .order_by(desc("count"))
+        .limit(limit)
+    )
+    results = session.exec(subquery).all()
+    
+    popular_ids = [r.template_id for r in results]
+    popular_templates = []
+    
+    if popular_ids:
+        # Fetch actual template objects
+        # To preserve order of popularity, we can't just use IN clause blindly without re-sorting
+        fetched = session.exec(select(PromptTemplate).where(PromptTemplate.id.in_(popular_ids))).all()
+        fetched_map = {t.id: t for t in fetched}
+        for pid in popular_ids:
+            if pid in fetched_map:
+                popular_templates.append(fetched_map[pid])
+    
+    # 2. If we need more, fetch by created_at desc (excluding already found)
+    if len(popular_templates) < limit:
+        remaining = limit - len(popular_templates)
+        query = select(PromptTemplate).order_by(desc(PromptTemplate.created_at)).limit(remaining)
+        
+        if popular_ids:
+            query = query.where(PromptTemplate.id.notin_(popular_ids))
+            
+        others = session.exec(query).all()
+        popular_templates.extend(others)
+            
+    return popular_templates
+
+@router.get("/stats/recent", response_model=List[PromptTemplate])
+def get_recent_templates(
+    limit: int = 4,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    # Get distinct template_ids used by user, ordered by most recent use
+    # Query TemplateUsage
+    query = (
+        select(TemplateUsage.template_id)
+        .where(TemplateUsage.user_id == current_user.id)
+        .order_by(TemplateUsage.created_at.desc())
+        .limit(limit * 2) # Fetch more to filter duplicates in app logic if needed (though distinct is better)
+    )
+    
+    # Distinct is tricky with order by in some SQL dialects, but here we can just fetch usages
+    usages = session.exec(select(TemplateUsage).where(TemplateUsage.user_id == current_user.id).order_by(TemplateUsage.created_at.desc()).limit(20)).all()
+    
+    seen = set()
+    template_ids = []
+    for u in usages:
+        if u.template_id not in seen:
+            seen.add(u.template_id)
+            template_ids.append(u.template_id)
+            if len(template_ids) >= limit:
+                break
+                
+    if not template_ids:
+        return []
+        
+    templates = session.exec(select(PromptTemplate).where(PromptTemplate.id.in_(template_ids))).all()
+    # Sort
+    templates_map = {t.id: t for t in templates}
+    return [templates_map[tid] for tid in template_ids if tid in templates_map]
+
+@router.post("/{template_id}/track")
+def track_template_usage(
+    template_id: uuid.UUID,
+    action: str = "view", # view, copy, run
+    current_user: Optional[User] = Depends(get_current_user), # Optional for guests? PRD says guest tracking for simple stats okay, need logic
+    session: Session = Depends(get_session)
+):
+    # If action is 'copy' or 'run', tracking is valuable. 'view' maybe excessive.
+    user_id = current_user.id if current_user else None
+    
+    usage = TemplateUsage(
+        template_id=template_id,
+        user_id=user_id,
+        action_type=action,
+        created_at=datetime.utcnow()
+    )
+    session.add(usage)
+    session.commit()
+    return {"ok": True}
+
+    session.add(usage)
+    session.commit()
+    return {"ok": True}
+
+@router.get("/{template_id}", response_model=PromptTemplateRead)
+def get_template_detail(
+    template_id: uuid.UUID,
+    session: Session = Depends(get_session)
+):
+    # Eager load category
+    statement = select(PromptTemplate).where(PromptTemplate.id == template_id)
+    # in SQLModel/SQLAlchemy 2.0 style?
+    # Usually: statement = select(PromptTemplate).options(selectinload(PromptTemplate.category)).where(...)
+    # But need to import selectinload.
+    # Or just fetch and let lazy loading happen? Pydantic validation might trigger it if session is active.
+    # But async/sync session matters. Here it's sync.
+    # If I just get it, accessing .category will trigger load.
+    template = session.exec(statement).first()
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return template
 
 @router.get("/default", response_model=Optional[PromptTemplate])
 def get_default_template(

@@ -14,6 +14,7 @@ interface PromptTemplate {
     is_default: boolean;
     name: string;
     applicable_agents?: string[];
+    preview_image_url?: string;
 }
 
 interface Category {
@@ -46,30 +47,35 @@ export default function TemplateManagementPage() {
     const [hasMore, setHasMore] = useState(true);
     const LIMIT = 20;
 
-    // Form state
-    const [formData, setFormData] = useState({
-        name: '',
-        category_id: '',
-        mode: 'simple',
-        content: '',
-        is_default: false,
-        applicable_agents: [] as string[]
-    });
-
-    // Structured Content State
-    const [groups, setGroups] = useState<TemplateGroup[]>([]);
-
     // Filter states
     const [searchTerm, setSearchTerm] = useState('');
     const [filterParentId, setFilterParentId] = useState('');
     const [filterChildId, setFilterChildId] = useState('');
     const [filterMode, setFilterMode] = useState('');
 
+    // Score state
+    const [scores, setScores] = useState<Record<string, number>>({});
+
     // Derived lists for filter dropdowns
     const rootCategories = categories.filter(c => !c.parent_id);
     const subCategories = filterParentId
         ? categories.filter(c => c.parent_id === filterParentId)
         : [];
+
+    const [formParentId, setFormParentId] = useState('');
+
+    // Structured Content State
+    const [groups, setGroups] = useState<TemplateGroup[]>([]);
+
+    const [formData, setFormData] = useState({
+        name: '',
+        category_id: '',
+        mode: 'simple',
+        content: '',
+        is_default: false,
+        applicable_agents: [] as string[],
+        preview_image_url: ''
+    });
 
     const fetchCategories = async () => {
         try {
@@ -88,10 +94,6 @@ export default function TemplateManagementPage() {
             console.error("Failed to fetch agents", error);
         }
     };
-
-
-    // Score state
-    const [scores, setScores] = useState<Record<string, number>>({});
 
     const loadTemplates = async (reset = false) => {
         try {
@@ -125,8 +127,6 @@ export default function TemplateManagementPage() {
             if (newTemplates.length > 0) {
                 try {
                     const ids = newTemplates.map(t => t.id).join(',');
-                    // Note: This matches ID from Admin Template (public.prompt_template) to prompt_ops.evaluations(template_id)
-                    // This assumes IDs are shared or migrated. If not found, score will be undefined.
                     const scoreRes = await api.get(`/api/crucible/scores/${ids}`);
                     setScores(prev => ({ ...prev, ...scoreRes.data }));
                 } catch (e) {
@@ -201,16 +201,26 @@ export default function TemplateManagementPage() {
     const openModal = (template?: PromptTemplate) => {
         if (template) {
             setEditingTemplate(template);
+
+            // Determine parent category for form
+            const cat = categories.find(c => c.id === template.category_id);
+            if (cat && cat.parent_id) {
+                setFormParentId(cat.parent_id);
+            } else {
+                setFormParentId('');
+            }
+
             setFormData({
                 name: template.name || '',
                 category_id: template.category_id || '',
                 mode: template.mode as any,
                 content: template.content,
                 is_default: template.is_default,
-                applicable_agents: template.applicable_agents || []
+                applicable_agents: template.applicable_agents || [],
+                preview_image_url: template.preview_image_url || ''
             });
 
-            // Parse content if assistance mode
+            // ... [existing parsing logic] ...
             if (template.mode === 'assistance') {
                 try {
                     const parsed = JSON.parse(template.content);
@@ -227,6 +237,7 @@ export default function TemplateManagementPage() {
             }
         } else {
             setEditingTemplate(null);
+            setFormParentId('');
             resetForm();
         }
         setIsModalOpen(true);
@@ -239,9 +250,11 @@ export default function TemplateManagementPage() {
             mode: 'simple',
             content: '',
             is_default: false,
-            applicable_agents: []
+            applicable_agents: [],
+            preview_image_url: ''
         });
         setGroups([]);
+        setFormParentId('');
     };
 
     // Group Management Handlers
@@ -483,20 +496,42 @@ export default function TemplateManagementPage() {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                 />
                             </div>
+
+                            {/* Category Selection (2-depth) */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">대분류</label>
                                     <select
-                                        value={formData.category_id}
-                                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                        value={formParentId}
+                                        onChange={(e) => {
+                                            setFormParentId(e.target.value);
+                                            setFormData(prev => ({ ...prev, category_id: '' })); // Reset sub-category
+                                        }}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                     >
-                                        <option value="">카테고리 선택</option>
-                                        {categories.map(c => (
+                                        <option value="">대분류 선택</option>
+                                        {rootCategories.map(c => (
                                             <option key={c.id} value={c.id}>{c.name}</option>
                                         ))}
                                     </select>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">소분류</label>
+                                    <select
+                                        value={formData.category_id}
+                                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                        disabled={!formParentId}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                                    >
+                                        <option value="">소분류 선택</option>
+                                        {categories.filter(c => c.parent_id === formParentId).map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">모드</label>
                                     <select
@@ -508,7 +543,31 @@ export default function TemplateManagementPage() {
                                         <option value="assistance">Assistance</option>
                                     </select>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">미리보기 이미지 URL</label>
+                                    <input
+                                        type="text"
+                                        value={formData.preview_image_url || ''}
+                                        onChange={(e) => setFormData({ ...formData, preview_image_url: e.target.value })}
+                                        placeholder="https://example.com/image.png"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                    />
+                                </div>
                             </div>
+
+                            {/* Preview Image Check */}
+                            {formData.preview_image_url && (
+                                <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden relative border border-gray-200">
+                                    <img
+                                        src={formData.preview_image_url}
+                                        alt="Preview"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=Invalid+Image+URL';
+                                        }}
+                                    />
+                                </div>
+                            )}
 
                             {formData.mode === 'simple' ? (
                                 <div>

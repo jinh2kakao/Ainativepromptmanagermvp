@@ -123,17 +123,28 @@ const attachAuthHeaders = async (config: InternalAxiosRequestConfig) => {
 
 // Request interceptor
 api.interceptors.request.use(async (config) => {
-    return attachAuthHeaders(config);
+    console.log(`[Axios] Request: ${config.baseURL}${config.url}`);
+    const conf = await attachAuthHeaders(config);
+    return conf;
 });
 
 // Response interceptor with retry logic for 401 errors (session race condition fix)
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log(`[Axios] Response: ${response.status} ${response.config.url}`);
+        return response;
+    },
     async (error: AxiosError) => {
+        console.error(`[Axios] Error: ${error.message}`, {
+            url: error.config?.url,
+            code: error.code,
+            response: error.response?.status
+        });
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // Only retry once and only for 401 errors
         if (error.response?.status === 401 && !originalRequest._retry) {
+            console.log('[Axios] Attempting retry for 401...', error.config?.url);
             originalRequest._retry = true;
 
             // Wait for session to potentially initialize

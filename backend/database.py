@@ -33,6 +33,13 @@ def create_db_and_tables():
                 conn.commit()
             else:
                 print("Migration skipped: applicable_agents already exists.")
+
+            # Auto-migration for preview_image_url
+            result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='prompttemplate' AND column_name='preview_image_url'"))
+            if not result.fetchone():
+                print("Migrating: Adding preview_image_url to prompttemplate...")
+                conn.execute(text("ALTER TABLE prompttemplate ADD COLUMN preview_image_url TEXT"))
+                conn.commit()
     except Exception as e:
         print(f"Migration warning: {e}")
 

@@ -25,6 +25,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { canCreatePrompt, getQuotaLimit, getQuotaWarning } from '@/utils/storage';
 import { useAlert } from '@/components/providers/AlertProvider';
 import { useUIStore } from '@/stores/uiStore';
+import { ViewToggle } from '@/components/common/ViewToggle';
 import { ProductTour, Step } from '@/components/tour/ProductTour';
 
 interface CategoryOption {
@@ -59,7 +60,7 @@ export default function PromptListContainer() {
     const { data: userProfile } = useUser();
 
     // 2. UI 상태 관리
-    const { viewMode, setViewMode } = useUIStore();
+    const { promptListView, setPromptListView } = useUIStore(); // Use promptListView instead of generic viewMode
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -104,14 +105,13 @@ export default function PromptListContainer() {
     }, []);
 
     // Sync View Mode from URL
+    // Sync View Mode from URL
     useEffect(() => {
         const viewParam = searchParams.get('view');
-        console.log('PromptListContainer: viewParam', viewParam);
         if (viewParam === 'list' || viewParam === 'kanban') {
-            console.log('PromptListContainer: Setting viewMode to', viewParam);
-            setViewMode(viewParam);
+            setPromptListView(viewParam);
         }
-    }, [searchParams, setViewMode]);
+    }, [searchParams, setPromptListView]);
 
     // 3. 기능 구현
     const handleAuthAction = async () => {
@@ -248,31 +248,37 @@ export default function PromptListContainer() {
                                 </p>
                             </div>
 
-                            <div className="relative w-full sm:w-auto">
-                                <Button
-                                    id="tour-dashboard-create-btn"
-                                    onClick={handleCreate}
-                                    disabled={!canCreate}
-                                    size="lg"
-                                    className={`w-full sm:w-auto shadow-md hover:shadow-lg transition-all duration-200 border-0 ${canCreate
-                                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
-                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        }`}
-                                >
-                                    <Plus />
-                                    New Prompt
-                                </Button>
-                                {!canCreate && (
-                                    <div className="absolute top-full mt-2 left-0 sm:right-0 sm:left-auto w-full sm:w-64 bg-gray-900 text-white text-xs rounded-lg p-3 z-10 shadow-xl">
-                                        <p>{quotaLimit}개 프롬프트 제한에 도달했습니다.</p>
-                                        <button
-                                            onClick={() => setIsPricingModalOpen(true)}
-                                            className="mt-2 text-blue-300 hover:text-blue-200 underline"
-                                        >
-                                            업그레이드하여 무제한 사용하기
-                                        </button>
-                                    </div>
-                                )}
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <ViewToggle
+                                    view={promptListView}
+                                    onChange={setPromptListView}
+                                />
+                                <div className="relative w-full sm:w-auto">
+                                    <Button
+                                        id="tour-dashboard-create-btn"
+                                        onClick={handleCreate}
+                                        disabled={!canCreate}
+                                        size="lg"
+                                        className={`w-full sm:w-auto shadow-md hover:shadow-lg transition-all duration-200 border-0 ${canCreate
+                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
+                                    >
+                                        <Plus />
+                                        New Prompt
+                                    </Button>
+                                    {!canCreate && (
+                                        <div className="absolute top-full mt-2 left-0 sm:right-0 sm:left-auto w-full sm:w-64 bg-gray-900 text-white text-xs rounded-lg p-3 z-10 shadow-xl">
+                                            <p>{quotaLimit}개 프롬프트 제한에 도달했습니다.</p>
+                                            <button
+                                                onClick={() => setIsPricingModalOpen(true)}
+                                                className="mt-2 text-blue-300 hover:text-blue-200 underline"
+                                            >
+                                                업그레이드하여 무제한 사용하기
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -280,7 +286,7 @@ export default function PromptListContainer() {
                         <PromptListView
                             prompts={prompts}
                             categories={categories}
-                            viewMode={viewMode}
+                            viewMode={promptListView} // Pass promptListView instead of viewMode
                             onPromptClick={(p) => router.push(`/prompts/view?id=${p.id}`)}
                             onRun={(p) => console.log('Run', p)}
                             onEdit={handleEdit}

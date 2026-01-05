@@ -1,16 +1,14 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/utils/supabase/client';
-import PromptListContainer from '@/features/prompts/PromptListContainer';
-import { useAuthStore } from '@/features/auth/store';
+import { DashboardTemplates } from '@/components/dashboard/DashboardTemplates';
 
 export default function Home() {
   // Global Auth is handled in ClientLayout
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
-      <PromptListContainer />
-    </Suspense>
+    <main className="min-h-screen bg-gray-50/30">
+      <div className="container mx-auto px-6 pt-8 pb-4">
+        <DashboardTemplates />
+      </div>
+    </main>
   );
 }
