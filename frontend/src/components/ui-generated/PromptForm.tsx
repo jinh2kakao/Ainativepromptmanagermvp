@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, ChevronDown } from 'lucide-react';
+import { Sparkles, ChevronDown, LayoutTemplate } from 'lucide-react';
 import { Prompt } from '@/types';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { SimpleModeInput } from './SimpleModeInput';
 import { AssistanceMode } from './AssistanceMode';
 import { assemblePrompt, extractVariables } from '@/utils/promptUtils';
@@ -10,10 +17,11 @@ import { useAlert } from '@/components/providers/AlertProvider';
 import { api } from '@/utils/axios';
 import { AssistanceSkeleton } from './AssistanceSkeleton';
 import { ProductTour } from '@/components/tour/ProductTour';
-import { jobCategories } from '@/utils/jobCategories';
+import { useJobCategories } from '@/hooks/useJobCategories';
 import { MultiSelectAgents } from './MultiSelectAgents';
 import { parsePairPrompt } from '@/utils/pairParser';
 import { Button } from '@/components/ui/button';
+import { TemplateSidebar } from '@/components/prompts/TemplateSidebar';
 
 interface PromptFormProps {
     prompt?: Prompt | null;
@@ -57,11 +65,19 @@ export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: P
     const [subCategory, setSubCategory] = useState(prompt?.subCategory || '');
     const [applicableAgents, setApplicableAgents] = useState<string[]>(prompt?.applicableAgents || []);
 
+    // Categories
+    const { data: jobCategories = [] } = useJobCategories();
+
+    // Undo State
+    const [previousState, setPreviousState] = useState<{
+        content: string;
+        structure: any;
+        mode: 'simple' | 'assistance';
+    } | null>(null);
+
     // Template State
-    const [isTemplateLoading, setIsTemplateLoading] = useState(false);
-    const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
-    const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-    const [templateSchema, setTemplateSchema] = useState<any[]>([]);
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+    // Removed old template state variables
 
     // Load last input mode from localStorage after mount (to avoid hydration mismatch)
     useEffect(() => {
@@ -73,87 +89,8 @@ export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: P
         }
     }, []); // Run only once on mount
 
-    // Load templates when subCategory changes
-    // Load templates when subCategory changes
-    useEffect(() => {
-        const fetchTemplates = async () => {
-            if (!subCategory) {
-                setAvailableTemplates([]);
-                return;
-            }
-
-            setIsTemplateLoading(true);
-            try {
-                // Determine which mode to fetch. 
-                // Note: Admin might want to see all? Usually users want templates for current mode.
-                const response = await api.get(`/api/templates/?subCategory=${encodeURIComponent(subCategory)}&mode=${mode}`);
-                const templates = response.data;
-                setAvailableTemplates(templates);
-
-                // Auto-select first template if none selected or if switching categories
-                if (templates.length > 0) {
-                    // Default logic: find 'is_default' or take first
-                    const defaultTemplate = templates.find((t: any) => t.is_default) || templates[0];
-                    setSelectedTemplateId(defaultTemplate.id);
-
-                    // Auto-fill content Logic:
-                    // 1. New Prompt (!prompt) -> Always Auto-fill
-                    // 2. Editing Prompt (prompt exists) -> Only if Category changed (user interaction)
-                    const isCategoryChanged = !prompt || (prompt.subCategory !== subCategory);
-
-                    if (isCategoryChanged) {
-                        try {
-                            if (mode === 'simple') {
-                                // Simple Mode: Set Content String
-                                setSimpleContent(defaultTemplate.content || '');
-                            } else {
-                                // Assistance Mode: Parse as PAIR Structure (Text -> Object)
-                                const newStructure = parsePairPrompt(defaultTemplate.content || '');
-                                setAssistanceStructure(newStructure);
-                            }
-
-                            // Auto-fill applicable agents (for both modes)
-                            if (defaultTemplate.applicable_agents) {
-                                setApplicableAgents(defaultTemplate.applicable_agents);
-                            }
-
-                            // UX Feedback for auto-application
-                            // alert('기본 템플릿이 적용되었습니다', '알림'); // User requested removal
-
-                        } catch (e) {
-                            console.error("Failed to parse template content", e);
-                        }
-                    }
-                } else {
-                    setSelectedTemplateId('');
-                    setTemplateSchema([]);
-
-                    // [QA FIX] Clear content if no templates found for this category/mode
-                    // Only do this if category changed (user interaction), to avoid wiping content on initial load if something is weird
-                    const isCategoryChanged = !prompt || (prompt.subCategory !== subCategory);
-                    if (isCategoryChanged) {
-                        if (mode === 'simple') {
-                            setSimpleContent('');
-                        } else {
-                            setAssistanceStructure({
-                                job: '',
-                                persona: { profile: '', intent: '' },
-                                asset: { knowledgeBase: '', styleGuide: '' },
-                                instruction: { task: '', context: '', constraints: '' },
-                                result: { format: '', example: '' }
-                            });
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch templates", error);
-            } finally {
-                setIsTemplateLoading(false);
-            }
-        };
-
-        fetchTemplates();
-    }, [subCategory, mode]);
+    // Load templates logic moved to TemplateSidebar
+    // Auto-apply logic removed
 
     const handleModeChange = (newMode: 'simple' | 'assistance') => {
         setMode(newMode);
@@ -164,26 +101,47 @@ export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: P
         setAssistanceStructure(newStructure);
     };
 
-    const handleTemplateSelect = (templateId: string) => {
-        setSelectedTemplateId(templateId);
-        const template = availableTemplates.find(t => t.id === templateId);
+    const handleManualTemplateApply = (template: any) => {
+        // Save state for Undo
+        setPreviousState({
+            content: simpleContent,
+            structure: { ...assistanceStructure },
+            mode: mode
+        });
 
-        if (!template) return;
-
-        if (mode === 'simple') {
-            // Simple Mode: Update content
+        // Apply content
+        if (template.mode === 'simple') {
+            if (mode !== 'simple') setMode('simple');
             setSimpleContent(template.content || '');
         } else {
-            // Assistance Mode: Update structure
+            // Assistance Template
+            if (mode !== 'assistance') setMode('assistance');
             if (template.content) {
                 const newStructure = parsePairPrompt(template.content);
                 setAssistanceStructure(newStructure);
             }
         }
 
+        // Also apply agents if present?
+        // Requirement didn't explicitly say about agents, but it's good UX.
+        // Let's apply agents but maybe not agents UNDO for now to keep it simple, or backup agents too.
+        // For now, let's just apply it.
         if (template.applicable_agents) {
             setApplicableAgents(template.applicable_agents);
         }
+
+        alert('템플릿이 적용되었습니다. 원하시면 실행 취소할 수 있습니다.', '알림');
+    };
+
+    const handleUndo = () => {
+        if (!previousState) return;
+
+        setMode(previousState.mode);
+        setSimpleContent(previousState.content);
+        setAssistanceStructure(previousState.structure);
+        setPreviousState(null);
+
+        alert('이전 상태로 복구되었습니다.', '알림');
     };
 
     const handleSave = () => {
@@ -280,9 +238,13 @@ export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: P
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8" suppressHydrationWarning>
+            {/* Undo Banner if available - Moved here as requested */}
+            {/* But wait, request said: "템플릿 적용 되돌리기 영역은 프롬프트 작성과 작성모드 선택 UI 사이로 이동" */}
+            {/* "Prompt Creation" (Input) vs "Mode Selection" (in Settings Card). So between cards. */}
+
+            <div className="flex flex-col lg:flex-row gap-8" suppressHydrationWarning>
                 {/* Left Column: Settings & Input */}
-                <div className={`space-y-6 ${mode === 'assistance' ? 'lg:col-span-7' : 'lg:col-span-12'}`} suppressHydrationWarning>
+                <div className="flex-1 min-w-0 space-y-6" suppressHydrationWarning>
 
                     {/* Basic Settings Card */}
                     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
@@ -352,41 +314,7 @@ export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: P
                             </div>
                         </div>
 
-                        {/* Template Selection UI (Consistent with AssistanceMode) */}
-                        {category && (
-                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 mt-4">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <Sparkles className="w-4 h-4 text-green-600" />
-                                            <p className="text-sm text-green-800">
-                                                선택된 직무: <span className="font-medium">{jobCategories.find(c => c.value === category)?.label || category}</span>
-                                            </p>
-                                        </div>
-                                        <p className="text-xs text-green-600 mt-1 ml-6">
-                                            선택한 직무에 최적화된 템플릿이 적용됩니다
-                                        </p>
-                                    </div>
-
-                                    {/* Template Selector inside Green Box */}
-                                    {availableTemplates.length > 0 && (
-                                        <div className="flex items-center gap-2 min-w-[200px]">
-                                            <select
-                                                value={selectedTemplateId}
-                                                onChange={(e) => handleTemplateSelect(e.target.value)}
-                                                className="w-full px-3 py-1.5 bg-white/80 border border-green-300 rounded-md text-sm text-green-900 focus:outline-none focus:ring-2 focus:ring-green-500"
-                                            >
-                                                {availableTemplates.map((t) => (
-                                                    <option key={t.id} value={t.id}>
-                                                        {t.title} {t.is_default ? '(기본)' : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                        {/* Template Selection UI Removed */}
 
                         {/* Agents Selection */}
                         <div className="pt-2">
@@ -434,6 +362,58 @@ export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: P
                         </div>
                     </div>
 
+                    {/* Mobile: Buttons Row (Template Lookup + Undo) */}
+                    <div className="lg:hidden flex gap-2">
+                        <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="flex-1 flex gap-2 border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100">
+                                    <LayoutTemplate className="w-4 h-4" />
+                                    템플릿 조회 및 적용
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-[400px] max-h-[80vh] flex flex-col p-0">
+                                <DialogHeader className="p-4 pb-2">
+                                    <DialogTitle>템플릿 선택</DialogTitle>
+                                </DialogHeader>
+                                <div className="flex-1 overflow-y-auto p-4 pt-0">
+                                    <TemplateSidebar
+                                        selectedCategory={category}
+                                        selectedSubCategory={subCategory}
+                                        currentMode={mode}
+                                        onApplyTemplate={(t) => {
+                                            handleManualTemplateApply(t);
+                                            setIsTemplateModalOpen(false);
+                                        }}
+                                    />
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Mobile Undo Button */}
+                        {previousState && (
+                            <Button
+                                variant="outline"
+                                onClick={handleUndo}
+                                className="flex-1 border-yellow-200 text-yellow-700 bg-yellow-50 hover:bg-yellow-100"
+                            >
+                                템플릿 적용 취소
+                            </Button>
+                        )}
+                    </div>
+
+                    {/* Desktop: Undo Button ONLY (Between cards) */}
+                    {previousState && (
+                        <div className="hidden lg:flex justify-end">
+                            <Button
+                                variant="outline"
+                                onClick={handleUndo}
+                                className="border-yellow-200 text-yellow-700 bg-yellow-50 hover:bg-yellow-100"
+                            >
+                                템플릿 적용 취소
+                            </Button>
+                        </div>
+                    )}
+
                     {/* Input Area */}
                     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                         {/* ... (existing imports) */}
@@ -445,50 +425,33 @@ export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: P
                                 <SimpleModeInput value={simpleContent} onChange={setSimpleContent} />
                             ) : (
                                 <div className="relative min-h-[200px]">
-                                    {isTemplateLoading ? (
-                                        <AssistanceSkeleton />
-                                    ) : (
-                                        <AssistanceMode
-                                            value={assistanceStructure}
-                                            onChange={handleAssistanceChange}
-                                            selectedJob={subCategory}
-                                            templateSchema={templateSchema}
-                                            availableTemplates={availableTemplates}
-                                            selectedTemplateId={selectedTemplateId}
-                                            onTemplateSelect={handleTemplateSelect}
-                                            hideHeader={true}
-                                        />
-                                    )}
+                                    <AssistanceMode
+                                        value={assistanceStructure}
+                                        onChange={handleAssistanceChange}
+                                        selectedJob={subCategory}
+                                        templateSchema={[]}
+                                        availableTemplates={[]}
+                                        selectedTemplateId={''}
+                                        onTemplateSelect={() => { }}
+                                        hideHeader={true}
+                                    />
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Right Column: Sticky Preview (Assistance Mode Only) */}
-                {mode === 'assistance' && (
-                    <div className="lg:col-span-5 hidden lg:block">
-                        <div className="sticky top-24 space-y-4">
-                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 text-white shadow-xl">
-                                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                    <span>👁️</span> 미리보기
-                                </h3>
-                                <div className="prose prose-invert max-w-none text-sm opacity-90 whitespace-pre-wrap font-mono bg-black/30 p-4 rounded-lg max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
-                                    {assemblePrompt(assistanceStructure) || '작성된 내용이 여기에 표시됩니다...'}
-                                </div>
-                            </div>
-
-                            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
-                                <h4 className="font-semibold mb-2">💡 작성 팁</h4>
-                                <ul className="list-disc list-inside space-y-1 opacity-80">
-                                    <li>구체적인 페르소나를 설정하세요.</li>
-                                    <li>명확한 제약 조건을 제시하면 결과가 좋아집니다.</li>
-                                    <li>원하는 출력 형식을 예시로 보여주세요.</li>
-                                </ul>
-                            </div>
-                        </div>
+                {/* Right Column: Template Sidebar (Fixed Width) */}
+                <div className="hidden lg:block w-[320px] shrink-0 border-l pl-6 min-h-[600px]">
+                    <div className="sticky top-24 h-[calc(100vh-150px)]">
+                        <TemplateSidebar
+                            selectedCategory={category}
+                            selectedSubCategory={subCategory}
+                            currentMode={mode}
+                            onApplyTemplate={handleManualTemplateApply}
+                        />
                     </div>
-                )}
+                </div>
             </div>
             <ProductTour />
         </div>

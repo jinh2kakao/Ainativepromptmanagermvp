@@ -13,6 +13,7 @@ interface PromptTemplate {
     content: string;
     is_default: boolean;
     name: string;
+    description?: string;
     applicable_agents?: string[];
     preview_image_url?: string;
 }
@@ -69,6 +70,7 @@ export default function TemplateManagementPage() {
 
     const [formData, setFormData] = useState({
         name: '',
+        description: '',
         category_id: '',
         mode: 'simple',
         content: '',
@@ -212,6 +214,7 @@ export default function TemplateManagementPage() {
 
             setFormData({
                 name: template.name || '',
+                description: template.description || '',
                 category_id: template.category_id || '',
                 mode: template.mode as any,
                 content: template.content,
@@ -246,6 +249,7 @@ export default function TemplateManagementPage() {
     const resetForm = () => {
         setFormData({
             name: '',
+            description: '',
             category_id: '',
             mode: 'simple',
             content: '',
@@ -435,7 +439,10 @@ export default function TemplateManagementPage() {
                                             {getScoreBadge(template.id)}
                                         </td>
                                         <td className="px-6 py-4 text-gray-500 max-w-xs truncate">
-                                            {template.content}
+                                            <div className="flex flex-col">
+                                                <span>{template.description || '-'}</span>
+                                                <span className="text-xs text-gray-400 truncate">{template.content}</span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-gray-500">
                                             {template.is_default ? 'Yes' : 'No'}
@@ -493,6 +500,16 @@ export default function TemplateManagementPage() {
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     placeholder="템플릿 이름을 입력하세요"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">설명 (Description)</label>
+                                <input
+                                    type="text"
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    placeholder="템플릿에 대한 설명을 입력하세요"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                 />
                             </div>

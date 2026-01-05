@@ -23,6 +23,7 @@ class PromptTemplateRead(SQLModel):
     mode: PromptMode
     title: Optional[str]
     name: str
+    description: Optional[str] = None
     content: str
     applicable_agents: Optional[List[str]]
     preview_image_url: Optional[str]

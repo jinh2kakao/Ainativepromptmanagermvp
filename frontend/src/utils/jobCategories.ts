@@ -19,7 +19,8 @@ export const jobCategories = [
       { value: '디자인 시스템', label: '디자인 시스템' },
       { value: 'UX 라이팅', label: 'UX 라이팅' },
       { value: '그래픽 & 브랜딩', label: '그래픽 & 브랜딩' },
-      { value: '디자인 리뷰', label: '디자인 리뷰' }
+      { value: '디자인 리뷰', label: '디자인 리뷰' },
+      { value: '이미지 & 캐릭터', label: '이미지 & 캐릭터' }
     ]
   },
   {

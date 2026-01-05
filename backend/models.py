@@ -182,6 +182,7 @@ class PromptTemplate(SQLModel, table=True):
     mode: PromptMode = Field(default=PromptMode.SIMPLE)
     title: Optional[str] = Field(default=None) # Added title field
     name: str = Field(default="Default Template") # Added name
+    description: Optional[str] = Field(default=None) # [NEW] Added description
     content: str # JSON string or plain text depending on mode
     applicable_agents: Optional[List[str]] = Field(default=None, sa_column=Column(JSON)) # Added field for applicable agents
     preview_image_url: Optional[str] = Field(default=None) # [NEW] v3.5.0

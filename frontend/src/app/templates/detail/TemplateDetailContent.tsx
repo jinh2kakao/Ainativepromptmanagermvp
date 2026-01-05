@@ -3,7 +3,8 @@
 import React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Check, Sparkles, User, Calendar, Copy } from 'lucide-react';
+import { ArrowLeft, Check, Sparkles, User, Calendar, Copy, Bot, FileText, ListChecks } from 'lucide-react';
+import { parsePairPrompt } from '@/utils/pairParser';
 import { api } from '@/utils/axios';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -122,12 +123,105 @@ export function TemplateDetailContent() {
                             </p>
                         </div>
 
-                        {/* Content Section (Optional Preview) */}
+                        {/* Content Section (Preview) */}
                         <div className="bg-gray-50 rounded-lg p-6 border border-gray-100">
-                            <h2 className="text-sm font-semibold mb-3 text-gray-500 uppercase tracking-wide">Template Content Preview</h2>
-                            <div className="font-mono text-sm text-gray-700 max-h-60 overflow-y-auto whitespace-pre-wrap">
-                                {template.content}
-                            </div>
+                            {template.mode === 'assistance' ? (
+                                <div>
+                                    <h2 className="text-sm font-semibold mb-4 text-purple-700 uppercase tracking-wide flex items-center gap-2">
+                                        <Sparkles className="w-4 h-4" />
+                                        Assistance Structure
+                                    </h2>
+
+                                    {(() => {
+                                        const structure = parsePairPrompt(template.content);
+                                        return (
+                                            <div className="space-y-6">
+                                                {/* Persona */}
+                                                {(structure.persona.profile || structure.persona.intent) && (
+                                                    <div className="bg-white p-4 rounded-md border border-gray-200">
+                                                        <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+                                                            <Bot className="w-4 h-4 text-blue-500" /> Persona
+                                                        </h3>
+                                                        <div className="space-y-2 text-sm text-gray-700">
+                                                            {structure.persona.profile && (
+                                                                <div><span className="font-semibold text-gray-500 text-xs uppercase">Role:</span> {structure.persona.profile}</div>
+                                                            )}
+                                                            {structure.persona.intent && (
+                                                                <div><span className="font-semibold text-gray-500 text-xs uppercase">Intent:</span> {structure.persona.intent}</div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Instruction */}
+                                                {(structure.instruction.task || structure.instruction.context || structure.instruction.constraints) && (
+                                                    <div className="bg-white p-4 rounded-md border border-gray-200">
+                                                        <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+                                                            <ListChecks className="w-4 h-4 text-green-500" /> Instruction
+                                                        </h3>
+                                                        <div className="space-y-3 text-sm text-gray-700">
+                                                            {structure.instruction.task && (
+                                                                <div>
+                                                                    <div className="font-semibold text-gray-500 text-xs uppercase mb-1">Task</div>
+                                                                    <div className="bg-gray-50 p-2 rounded whitespace-pre-wrap">{structure.instruction.task}</div>
+                                                                </div>
+                                                            )}
+                                                            {structure.instruction.context && (
+                                                                <div>
+                                                                    <div className="font-semibold text-gray-500 text-xs uppercase mb-1">Context</div>
+                                                                    <div className="whitespace-pre-wrap">{structure.instruction.context}</div>
+                                                                </div>
+                                                            )}
+                                                            {structure.instruction.constraints && (
+                                                                <div>
+                                                                    <div className="font-semibold text-gray-500 text-xs uppercase mb-1">Constraints</div>
+                                                                    <div className="bg-red-50 text-red-800 p-2 rounded whitespace-pre-wrap text-xs">{structure.instruction.constraints}</div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Assets */}
+                                                {(structure.asset.knowledgeBase || structure.asset.styleGuide) && (
+                                                    <div className="bg-white p-4 rounded-md border border-gray-200">
+                                                        <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+                                                            <FileText className="w-4 h-4 text-orange-500" /> Assets
+                                                        </h3>
+                                                        <div className="space-y-2 text-sm text-gray-700">
+                                                            {structure.asset.knowledgeBase && (
+                                                                <div><span className="font-semibold text-gray-500 text-xs uppercase">Knowledge:</span> {structure.asset.knowledgeBase}</div>
+                                                            )}
+                                                            {structure.asset.styleGuide && (
+                                                                <div><span className="font-semibold text-gray-500 text-xs uppercase">Style:</span> {structure.asset.styleGuide}</div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Result */}
+                                                {(structure.result.format || structure.result.example) && (
+                                                    <div className="bg-white p-4 rounded-md border border-gray-200">
+                                                        <h3 className="text-sm font-bold text-gray-900 mb-2">Result Format</h3>
+                                                        <div className="space-y-2 text-sm text-gray-700">
+                                                            {structure.result.format && (
+                                                                <div><span className="font-semibold text-gray-500 text-xs uppercase">Format:</span> {structure.result.format}</div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            ) : (
+                                <div>
+                                    <h2 className="text-sm font-semibold mb-3 text-gray-500 uppercase tracking-wide">Template Content Preview</h2>
+                                    <div className="font-mono text-sm text-gray-700 max-h-60 overflow-y-auto whitespace-pre-wrap">
+                                        {template.content}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Applicable Agents */}

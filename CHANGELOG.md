@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 
 
+## [2026-01-05] v3.5.0 - Template System Evolution & Mobile Polish
+- **Changed**:
+  - **Template System**:
+    - **Description Field**: Added `description` column to `PromptTemplate` to provide rich context for generation templates (Backend & Admin).
+    - **Bulk Update**: Automatically generated and applied professional descriptions to all 460+ templates using keyword analysis.
+    - **Dynamic Loading**: Refactored `PromptForm` to fetch categories and templates dynamically from keys/IDs, ensuring synchronization with the Admin backend.
+  - **UI/UX**:
+    - **Mobile Optimization**:
+      - **Template Sidebar**: Now fully responsive with a slide-over drawer on mobile devices.
+      - **Undo Banner**: Adjusted positioning to prevent overlapping with mobile navigation.
+    - **Visuals**:
+      - **Thumbnails**: Added support for `preview_image_url` in template cards (Admin).
+      - **Layout**: Improved template lookup sidebar with concise descriptions and category badges.
+  - **Admin Console**:
+    - **Template Editor**: Added "Description" input field for creating/editing templates.
+    - **List View**: Enhanced table layout to show template descriptions.
+- **Reason**: To complete the "Template Application Process" (v3.5.0) ensuring users have clear context when choosing prompts and that the interface works flawlessly on mobile.
+- **Impact**:
+  - **Content**: Templates are now self-explanatory with rich descriptions.
+  - **Usability**: Mobile users have a first-class experience for prompt creation.
+  - **Scalability**: Dynamic fetching removes frontend hardcoding dependencies.
+
 ## [2025-12-30] v3.4.1 - Member Withdrawal & Auth Stability
 - **Changed**:
   - **Member Withdrawal**:

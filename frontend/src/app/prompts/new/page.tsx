@@ -9,7 +9,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { useUser } from '@/features/auth/useUser';
 import { UserType } from '@/types';
 import { api } from '@/utils/axios';
-import { jobCategories } from '@/utils/jobCategories';
+import { useJobCategories } from '@/hooks/useJobCategories';
 import { Suspense } from 'react';
 import { parsePairPrompt } from '@/utils/pairParser';
 
@@ -26,6 +26,9 @@ function NewPromptContent() {
     const createMutation = useCreatePrompt();
     const { user: authUser } = useAuthStore();
     const { data: userProfile } = useUser();
+
+    // Categories
+    const { data: jobCategories = [], isLoading: isCategoriesLoading } = useJobCategories();
 
     // User Type (Mock for now)
     const userType: UserType = authUser ? 'free' : 'guest';
@@ -56,8 +59,8 @@ function NewPromptContent() {
         });
     };
 
-    if (templateId && isTemplateLoading) {
-        return <div className="min-h-screen flex items-center justify-center">Loading template...</div>;
+    if ((templateId && isTemplateLoading) || isCategoriesLoading) {
+        return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
 
     // specific initialPrompt construction
