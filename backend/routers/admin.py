@@ -363,6 +363,7 @@ def list_templates(
     sub_category_value: Optional[str] = Query(None, alias="subCategory"),
     mode: Optional[PromptMode] = None,
     search: Optional[str] = None,
+    has_image: Optional[bool] = Query(None, alias="hasImage"),
     session: Session = Depends(get_session)
 ):
     query = select(PromptTemplate)
@@ -393,6 +394,12 @@ def list_templates(
         
     if search:
         query = query.where(PromptTemplate.content.contains(search))
+    
+    if has_image is not None:
+        if has_image:
+            query = query.where(PromptTemplate.preview_image_url != None, PromptTemplate.preview_image_url != "")
+        else:
+            query = query.where((PromptTemplate.preview_image_url == None) | (PromptTemplate.preview_image_url == ""))
         
     return session.exec(query.offset(skip).limit(limit)).all()
 

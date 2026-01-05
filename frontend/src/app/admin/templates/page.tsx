@@ -53,6 +53,7 @@ export default function TemplateManagementPage() {
     const [filterParentId, setFilterParentId] = useState('');
     const [filterChildId, setFilterChildId] = useState('');
     const [filterMode, setFilterMode] = useState('');
+    const [filterHasImage, setFilterHasImage] = useState('');
 
     // Score state
     const [scores, setScores] = useState<Record<string, number>>({});
@@ -111,7 +112,8 @@ export default function TemplateManagementPage() {
                 limit: LIMIT,
                 category_id: targetCategoryId || undefined,
                 mode: filterMode || undefined,
-                search: searchTerm || undefined
+                search: searchTerm || undefined,
+                hasImage: filterHasImage === '' ? undefined : filterHasImage === 'true'
             };
 
             const res = await api.get('/api/admin/templates', { params });
@@ -156,7 +158,7 @@ export default function TemplateManagementPage() {
             loadTemplates(true);
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, filterParentId, filterChildId, filterMode]);
+    }, [searchTerm, filterParentId, filterChildId, filterMode, filterHasImage]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -380,6 +382,15 @@ export default function TemplateManagementPage() {
                         <option value="">모든 모드</option>
                         <option value="simple">Simple</option>
                         <option value="assistance">Assistance</option>
+                    </select>
+                    <select
+                        value={filterHasImage}
+                        onChange={(e) => setFilterHasImage(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                        <option value="">이미지 전체</option>
+                        <option value="true">이미지 있음</option>
+                        <option value="false">이미지 없음</option>
                     </select>
                     <button
                         onClick={() => openModal()}
