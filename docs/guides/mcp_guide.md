@@ -74,7 +74,19 @@ Antigravity IDE의 기능을 확장하기 위한 **Model Context Protocol (MCP)*
         "Gc": "YOUR_GMAIL_CLIENT_SECRET",
         "Tc": "YOUR_GMAIL_REFRESH_TOKEN"
       },
-      "disabled": false,
+      "disabled": false
+    },
+    "figma": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@yhy2001/figma-mcp-server",
+        "--stdio"
+      ],
+      "env": {
+        "FIGMA_API_KEY": "YOUR_FIGMA_ACCESS_TOKEN"
+      },
+      "disabled": false
     }
   }
 }
@@ -121,6 +133,13 @@ IDE 샌드박스 외부의 파일 시스템에 접근합니다.
     ```json
     "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Logs", "C:\\Project"]
     ```
+
+### 3.5 Figma (Design)
+Figma 디자인 파일의 구조와 스타일 정보를 자연어로 조회하고 코드로 변환하는 데 도움을 줍니다.
+*   **기능**:
+    *   디자인 파일의 노드 트리 및 메타데이터 추출
+    *   AI를 통한 컴포넌트 코드 생성 보조
+*   **설정**: Figma 계정 설정에서 Personal Access Token을 발급받아 `FIGMA_API_KEY` 환경 변수에 설정해야 합니다. (패키지: `@yhy2001/figma-mcp-server`)
 
 ---
 
