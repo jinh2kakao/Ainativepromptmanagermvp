@@ -23,6 +23,11 @@ const fetchRootCategories = async () => {
     return res.data.filter((c: any) => !c.parent_id);
 };
 
+const fetchAllCategories = async () => {
+    const res = await api.get('/api/categories/');
+    return res.data;
+};
+
 export function DashboardTemplates() {
     const { data: user } = useUser();
     const router = useRouter();
@@ -44,6 +49,31 @@ export function DashboardTemplates() {
         queryFn: fetchRootCategories,
     });
 
+    const { data: allCategories = [] } = useQuery({
+        queryKey: ['categories', 'all'],
+        queryFn: fetchAllCategories,
+    });
+
+    // Create category lookup map
+    const categoryMap = React.useMemo(() => {
+        const map: Record<string, any> = {};
+        allCategories.forEach((c: any) => {
+            map[c.id] = c;
+        });
+        return map;
+    }, [allCategories]);
+
+    // Enrich templates with category object
+    const enrichedPopularTemplates = React.useMemo(() =>
+        popularTemplates.map((t: any) => ({ ...t, category: categoryMap[t.category_id] || null })),
+        [popularTemplates, categoryMap]
+    );
+
+    const enrichedRecentTemplates = React.useMemo(() =>
+        recentTemplates.map((t: any) => ({ ...t, category: categoryMap[t.category_id] || null })),
+        [recentTemplates, categoryMap]
+    );
+
     return (
         <div className="space-y-10 mb-8">
             {/* A. Welcome Message (Authenticated Users Only) */}
@@ -57,14 +87,14 @@ export function DashboardTemplates() {
             )}
 
             {/* A. Recent Templates (Authenticated Users with History) */}
-            {isAuthenticated && recentTemplates.length > 0 && (
+            {isAuthenticated && enrichedRecentTemplates.length > 0 && (
                 <section>
                     <div className="flex items-center gap-2 mb-4">
                         <Clock className="w-5 h-5 text-blue-600" />
                         <h2 className="text-lg font-bold text-gray-900">🕒 Jump back in</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {recentTemplates.map((template: any) => (
+                        {enrichedRecentTemplates.map((template: any) => (
                             <TemplateCard key={template.id} template={template} className="h-full" />
                         ))}
                     </div>
@@ -94,7 +124,7 @@ export function DashboardTemplates() {
                     </div>
                 ) : (
                     <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
-                        {popularTemplates.map((template: any) => (
+                        {enrichedPopularTemplates.map((template: any) => (
                             <TemplateCard key={template.id} template={template} className="mb-6 break-inside-avoid" />
                         ))}
                     </div>

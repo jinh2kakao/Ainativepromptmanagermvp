@@ -81,7 +81,16 @@ function TemplatesContent() {
         ? categories.filter((c: any) => c.parent_id === selectedParentId)
         : [];
 
-    // Filter logic
+    // Create category lookup map
+    const categoryMap = React.useMemo(() => {
+        const map: Record<string, any> = {};
+        categories.forEach((c: any) => {
+            map[c.id] = c;
+        });
+        return map;
+    }, [categories]);
+
+    // Filter logic with category enrichment
     const filteredTemplates = templates.filter((t: any) => {
         // 1. Search Filter
         const matchesSearch = (t.title?.toLowerCase().includes(search.toLowerCase())) ||
@@ -101,7 +110,10 @@ function TemplatesContent() {
         }
 
         return matchesSearch && matchesCategory;
-    });
+    }).map((t: any) => ({
+        ...t,
+        category: categoryMap[t.category_id] || null
+    }));
 
     // Handlers
     const handleParentSelect = (cat: any) => {
