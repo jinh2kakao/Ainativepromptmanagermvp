@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Search } from 'lucide-react';
@@ -19,7 +19,7 @@ const fetchCategories = async () => {
     return res.data;
 };
 
-export default function TemplatesPage() {
+function TemplatesContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [search, setSearch] = useState('');
@@ -265,5 +265,13 @@ export default function TemplatesPage() {
                 )}
             </main>
         </div>
+    );
+}
+
+export default function TemplatesPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+            <TemplatesContent />
+        </Suspense>
     );
 }
