@@ -17,7 +17,7 @@ import { useAlert } from '@/components/providers/AlertProvider';
 import { api } from '@/utils/axios';
 import { AssistanceSkeleton } from './AssistanceSkeleton';
 import { ProductTour } from '@/components/tour/ProductTour';
-import { useJobCategories } from '@/hooks/useJobCategories';
+import { useJobCategories, CategoryOption } from '@/hooks/useJobCategories';
 import { MultiSelectAgents } from './MultiSelectAgents';
 import { parsePairPrompt } from '@/utils/pairParser';
 import { Button } from '@/components/ui/button';
@@ -30,12 +30,7 @@ interface PromptFormProps {
     isSubmitting?: boolean;
 }
 
-interface CategoryOption {
-    id: string;
-    label: string;
-    value: string;
-    subCategories?: CategoryOption[];
-}
+
 
 export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: PromptFormProps) {
     const { alert } = useAlert();
