@@ -159,3 +159,13 @@ def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
             detail="Admin privileges required"
         )
     return current_user
+
+def get_current_user_optional(
+    token: Annotated[Optional[str], Depends(oauth2_scheme)], 
+    x_guest_id: Annotated[Optional[str], Header()] = None, 
+    session: Session = Depends(get_session)
+) -> Optional[User]:
+    try:
+        return get_current_user(token, x_guest_id, session)
+    except HTTPException:
+        return None

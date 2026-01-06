@@ -161,10 +161,17 @@ class Category(SQLModel, table=True):
     order: int = Field(default=0)
     config_json: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     
+    parent: Optional["Category"] = Relationship(
+        back_populates="children",
+        sa_relationship_kwargs={
+            "remote_side": "Category.id"
+        }
+    )
+    
     children: List["Category"] = Relationship(
+        back_populates="parent",
         sa_relationship_kwargs={
             "cascade": "all",
-            "remote_side": "Category.id"
         }
     )
 

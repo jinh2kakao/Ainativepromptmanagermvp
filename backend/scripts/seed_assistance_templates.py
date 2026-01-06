@@ -787,53 +787,16 @@ def seed_assistance_templates():
         # Create a map of value -> id for easy lookup
         cat_map = {cat.value: cat.id for cat in categories}
         
-        # Mapping from English keys (in script) to Korean values (in DB)
-        key_mapping = {
-            "business_model": "비즈니스 모델(BM) 수립",
-            "ux_research": "사용자 리서치(UX Research)",
-            "functional_spec": "기능 명세 및 정책",
-            "ia_design": "화면 설계(IA)",
-            "project_management": "프로젝트 관리(PM/PO)",
-            "ui_structure": "UI 구조 및 레이아웃",
-            "design_system": "디자인 시스템",
-            "ux_writing": "UX 라이팅",
-            "graphic_branding": "그래픽 & 브랜딩",
-            "design_review": "디자인 리뷰",
-            "frontend_dev": "프론트엔드 개발",
-            "backend_api": "백엔드 & API",
-            "code_quality": "코드 품질 & 리팩토링",
-            "devops_infra": "데브옵스 & 인프라",
-            "qa_testing": "QA & 테스팅",
-            "tech_docs": "기술 문서",
-            "data_query": "데이터 쿼리(SQL)",
-            "data_visualization": "데이터 시각화",
-            "data_analysis": "데이터 분석 보고",
-            "ai_modeling": "AI 모델링",
-            "copywriting": "카피라이팅(Ads)",
-            "content_marketing": "콘텐츠 마케팅",
-            "social_media": "소셜 미디어(SNS)",
-            "crm_email": "CRM & 이메일",
-            "brand_storytelling": "브랜드 스토리텔링",
-            "short_form_scenario": "숏폼 시나리오",
-            "long_form_planning": "롱폼 영상 기획",
-            "video_metadata": "영상 메타데이터",
-            "storyboard": "스토리보드 묘사",
-            "business_email": "비즈니스 이메일",
-            "docs_reports": "문서 및 보고서",
-            "presentation_speech": "발표 및 스피치",
-            "negotiation_comm": "협상 및 커뮤니케이션",
-            "recruiting": "채용(Recruiting)",
-            "onboarding_edu": "온보딩 & 교육",
-            "evaluation_feedback": "평가 & 피드백",
-            "customer_support": "고객 응대",
-            "chatbot_scenario": "챗봇 시나리오",
-            "survey": "설문조사"
-        }
+        # No longer needed due to DB update to English keys (v3.5+)
+        # key_mapping = { ... }
 
         count = 0
         for key, structure in templates_map.items():
-            # Use mapped value if exists, otherwise original key
-            value = key_mapping.get(key, key)
+            # Use the key directly as it now matches DB 'value'
+            value = key
+            
+            # Special case for "recruiting" if DB differs (e.g. "recruiting")
+            # But based on fix_category_values.py, they should match keys.
             
             if value in cat_map:
                 cat_id = cat_map[value]

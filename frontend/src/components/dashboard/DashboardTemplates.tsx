@@ -38,6 +38,11 @@ const fetchAllCategories = async () => {
 };
 
 export function DashboardTemplates() {
+    const [mounted, setMounted] = React.useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const { data: user, isLoading: isUserLoading } = useUser();
     const router = useRouter();
     // isAuthenticated is true if user exists. 
@@ -157,7 +162,7 @@ export function DashboardTemplates() {
                         className="shrink-0 gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 h-[42px]" // Explicit height/padding for button consistency
                     >
                         <Plus className="w-4 h-4" />
-                        NEW POOMPT
+                        NEW PROMPT
                     </Button>
                 </section>
             )}
@@ -170,15 +175,24 @@ export function DashboardTemplates() {
                         <h2 className="text-lg font-bold text-gray-900">🕒 Jump back in</h2>
                     </div>
 
-                    <ResponsiveMasonry
-                        columnsCountBreakPoints={{ 350: 1, 750: 2, 1024: 4 }}
-                    >
-                        <Masonry gutter="1rem">
-                            {enrichedRecent.map((template: any) => (
+                    {mounted ? (
+                        <ResponsiveMasonry
+                            columnsCountBreakPoints={{ 350: 1, 750: 2, 1024: 4 }}
+                        >
+                            <Masonry gutter="1rem">
+                                {enrichedRecent.map((template: any) => (
+                                    <TemplateCard key={template.id} template={template} className="mb-4" />
+                                ))}
+                            </Masonry>
+                        </ResponsiveMasonry>
+                    ) : (
+                        /* Server Side / Loading Skeleton for Recent */
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {enrichedRecent.slice(0, 4).map((template: any) => (
                                 <TemplateCard key={template.id} template={template} className="mb-4" />
                             ))}
-                        </Masonry>
-                    </ResponsiveMasonry>
+                        </div>
+                    )}
 
                 </section>
             )}
@@ -199,25 +213,42 @@ export function DashboardTemplates() {
                 </div>
 
                 {/* Popular Grid (Masonry) */}
-                <ResponsiveMasonry
-                    columnsCountBreakPoints={{ 350: 1, 768: 2, 1024: 3, 1280: 4 }}
-                >
-                    <Masonry gutter="1.5rem">
-                        {enrichedPopular.map((template: any) => (
-                            <TemplateCard key={template.id} template={template} className="mb-6" />
-                        ))}
+                {mounted ? (
+                    <ResponsiveMasonry
+                        columnsCountBreakPoints={{ 350: 1, 768: 2, 1024: 3, 1280: 4 }}
+                    >
+                        <Masonry gutter="1.5rem">
+                            {enrichedPopular.map((template: any) => (
+                                <TemplateCard key={template.id} template={template} className="mb-6" />
+                            ))}
 
-                        {/* Skeleton Loading for Next Page - Inside Masonry? mixing elements is tricky. 
-                             Masonry expects children to be items. 
-                             If we render skeletons as children, they will flow too. 
-                         */}
-                        {(isPopularLoading || isFetchingNextPage) && (
+                            {/* Skeleton Loading for Next Page - Inside Masonry? mixing elements is tricky. 
+                                    Masonry expects children to be items. 
+                                    If we render skeletons as children, they will flow too. 
+                                */}
+                            {(isPopularLoading || isFetchingNextPage) && (
+                                Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={`loading-${i}`} className="bg-gray-100 rounded-xl animate-pulse h-48 mb-6" />
+                                ))
+                            )}
+                        </Masonry>
+                    </ResponsiveMasonry>
+                ) : (
+                    /* Server Side / Loading Skeleton for Popular */
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {enrichedPopular.length > 0 ? (
+                            enrichedPopular.slice(0, 8).map((template: any) => (
+                                <TemplateCard key={template.id} template={template} className="mb-6" />
+                            ))
+                        ) : (
+                            /* Loading Skeletons if no data yet */
                             Array.from({ length: 4 }).map((_, i) => (
-                                <div key={`loading-${i}`} className="bg-gray-100 rounded-xl animate-pulse h-48 mb-6" />
+                                <div key={`loading-server-${i}`} className="bg-gray-100 rounded-xl animate-pulse h-48 mb-6" />
                             ))
                         )}
-                    </Masonry>
-                </ResponsiveMasonry>
+                    </div>
+                )}
+
 
                 {/* Infinite Scroll Trigger */}
                 <div ref={loadMoreRef} className="h-4 w-full" />

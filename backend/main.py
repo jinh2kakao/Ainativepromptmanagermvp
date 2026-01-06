@@ -26,7 +26,9 @@ from routers import (
     notices,
     faqs,
     inquiries,
-    agents
+    inquiries,
+    agents,
+    onboarding
 )
 
 import threading
@@ -121,6 +123,7 @@ app.include_router(notices.router)
 app.include_router(faqs.router)
 app.include_router(inquiries.router)
 app.include_router(agents.router)
+app.include_router(onboarding.router)
 
 
 @app.get("/")

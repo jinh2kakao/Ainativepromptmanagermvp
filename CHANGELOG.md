@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 
 
+## [2026-01-06] v3.6.0 - Onboarding 2.0 & Guest Experience
+- **Changed**:
+  - **Onboarding Flow**:
+    - **New Persona**: Replaced "Study/Research" with "Image/Video" (`youtube_media`) to better align with user intent.
+    - **Welcome Redirection**: New users are now automatically redirected to `/onboarding/welcome` for a guided start; returning users skip this.
+    - **Sidebar Visibility**: Sidebar is now visible throughout the onboarding process, allowing early exploration.
+    - **Result Page**: Refactored Result Page UI to match Template Detail view (Structured Markdown, Hero Image).
+    - **Guest Save**: Guest users can now properly "Save" prompts at the end of onboarding without logging in (using `X-Guest-ID`).
+  - **Infrastructure**:
+    - **Seed Data**: Updated `seed_categories.py` to include `youtube_media` category and subcategories.
+- **Reason**: To reduce drop-off rates by simplifying the first-time user experience and fixing critical friction points (e.g., Guest Save login wall, missing navigation).
+- **Impact**:
+  - **Conversion**: Seamless save flow encourages guests to engage deeper.
+  - **Usability**: Image/Video category is more relevant to current trends.
+  - **Navigation**: Users never feel "trapped" in onboarding due to visible sidebar.
+
 ## [2026-01-06] v3.5.2 - Dashboard & List UX Improvements
 - **Changed**:
   - **Dashboard**:

@@ -23,6 +23,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     // Global Auth Listener
     useEffect(() => {
+        // Skip auth check for public routes (auth, onboarding)
+        if (pathname?.startsWith('/auth') || pathname?.startsWith('/onboarding')) {
+            setInitialized(true);
+            return;
+        }
+
         const initializeAuth = async () => {
             try {
                 // Check active session

@@ -527,16 +527,31 @@ def seed_templates():
                 if existing_template:
                     # Update existing template
                     existing_template.content = content
+                    # Extract title from content (first line starting with #)
+                    lines = content.strip().split('\n')
+                    title = "New Template"
+                    if lines and lines[0].startswith('# '):
+                        title = lines[0].replace('# ', '').strip()
+                    
+                    existing_template.title = title
+                    existing_template.name = title
                     existing_template.mode = PromptMode.SIMPLE
                     existing_template.is_default = True
                     session.add(existing_template)
                     print(f"Updated template for {value}")
                 else:
                     # Create new template
+                    lines = content.strip().split('\n')
+                    title = "New Template"
+                    if lines and lines[0].startswith('# '):
+                        title = lines[0].replace('# ', '').strip()
+
                     new_template = PromptTemplate(
                         category_id=cat_id,
                         mode=PromptMode.SIMPLE,
                         content=content,
+                        title=title,
+                        name=title,
                         is_default=True
                     )
                     session.add(new_template)
