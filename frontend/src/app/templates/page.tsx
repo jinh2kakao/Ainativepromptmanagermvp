@@ -8,6 +8,7 @@ import { api } from '@/utils/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TemplateCard } from '@/components/dashboard/TemplateCard';
+import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 
 const fetchTemplates = async () => {
     const res = await api.get('/api/templates/', { params: { sortBy: 'popular' } });
@@ -24,9 +25,16 @@ function TemplatesContent() {
     const searchParams = useSearchParams();
     const [search, setSearch] = useState('');
 
-    // Split category selection into parent and child
-    const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
-    const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+    // State is driven by URL, but we keep local state for immediate UI feedback optimistically if needed,
+    // or just rely on URL. Let's rely on URL + derived state for strict persistence.
+    // However, the original code used local state. To support "Back" button, we MUST read from URL.
+
+    // Read from URL
+    const categoryFromUrl = searchParams.get('category');
+    const subCategoryFromUrl = searchParams.get('subcategory');
+
+    const selectedParentId = categoryFromUrl || null;
+    const selectedChildId = subCategoryFromUrl || null;
 
     // Drag scroll state
     const categoryContainerRef = useRef<HTMLDivElement>(null);
@@ -56,14 +64,6 @@ function TemplatesContent() {
     const handleMouseLeave = useCallback(() => {
         setIsDragging(false);
     }, []);
-
-    // Initialize from URL query param
-    useEffect(() => {
-        const categoryFromUrl = searchParams.get('category');
-        if (categoryFromUrl) {
-            setSelectedParentId(categoryFromUrl);
-        }
-    }, [searchParams]);
 
     const { data: templates = [], isLoading } = useQuery({
         queryKey: ['templates', 'all'],
@@ -115,19 +115,33 @@ function TemplatesContent() {
         category: categoryMap[t.category_id] || null
     }));
 
-    // Handlers
+    // Handlers - Update URL
+    const updateUrl = (catId: string | null, subId: string | null) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (catId) params.set('category', catId);
+        else params.delete('category');
+
+        if (subId) params.set('subcategory', subId);
+        else params.delete('subcategory');
+
+        router.push(`?${params.toString()}`);
+    };
+
     const handleParentSelect = (cat: any) => {
         if (cat) {
-            setSelectedParentId(cat.id);
+            // If clicking same, do nothing or toggle? Usually select.
+            updateUrl(cat.id, null);
         } else {
-            setSelectedParentId(null);
+            updateUrl(null, null);
         }
-        setSelectedChildId(null);
     };
 
     const handleClearParent = () => {
-        setSelectedParentId(null);
-        setSelectedChildId(null);
+        updateUrl(null, null);
+    };
+
+    const handleChildSelect = (childId: string | null) => {
+        updateUrl(selectedParentId, childId);
     };
 
     return (
@@ -236,7 +250,7 @@ function TemplatesContent() {
                                 <Button
                                     variant={selectedChildId === null ? 'secondary' : 'ghost'}
                                     size="sm"
-                                    onClick={() => setSelectedChildId(null)}
+                                    onClick={() => handleChildSelect(null)}
                                     className="text-xs px-3 h-8"
                                 >
                                     전체
@@ -246,7 +260,7 @@ function TemplatesContent() {
                                         key={cat.id}
                                         variant={selectedChildId === cat.id ? 'secondary' : 'ghost'}
                                         size="sm"
-                                        onClick={() => setSelectedChildId(cat.id)}
+                                        onClick={() => handleChildSelect(cat.id)}
                                         className="text-xs px-3 h-8"
                                     >
                                         {cat.name}
@@ -269,11 +283,16 @@ function TemplatesContent() {
                         No templates found.
                     </div>
                 ) : (
-                    <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
-                        {filteredTemplates.map((t: any) => (
-                            <TemplateCard key={t.id} template={t} className="break-inside-avoid mb-6" />
-                        ))}
-                    </div>
+                    <ResponsiveMasonry
+                        columnsCountBreakPoints={{ 350: 1, 750: 2, 1024: 3, 1280: 4 }}
+                    >
+                        <Masonry gutter="1.5rem">
+                            {filteredTemplates.map((t: any) => (
+                                <TemplateCard key={t.id} template={t} className="mb-6" />
+                            ))}
+                        </Masonry>
+                    </ResponsiveMasonry>
+
                 )}
             </main>
         </div>

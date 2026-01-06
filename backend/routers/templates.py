@@ -77,42 +77,80 @@ def list_templates(
 
 @router.get("/stats/popular", response_model=List[PromptTemplate])
 def get_popular_templates(
+    offset: int = 0,
     limit: int = 6,
     session: Session = Depends(get_session)
 ):
     # 1. Get IDs from TemplateUsage sorted by count desc
-    subquery = (
+    # We need to fetch enough IDs to cover the requested page, considering the offset
+    # Strategy: Fetch potentially more IDs from usage stats, then fallback to recent
+    
+    # First, get all useful usage stats (or up to a reasonable limit if data is huge, e.g. 1000)
+    # Since we need to paginate a combined list (Usage Count > 0 THEN Created At), 
+    # we first check how many templates have usage.
+    
+    usage_query = (
         select(TemplateUsage.template_id, func.count(TemplateUsage.id).label("count"))
         .group_by(TemplateUsage.template_id)
         .order_by(desc("count"))
-        .limit(limit)
     )
-    results = session.exec(subquery).all()
+    usage_results = session.exec(usage_query).all()
+    popular_ids = [r.template_id for r in usage_results]
     
-    popular_ids = [r.template_id for r in results]
-    popular_templates = []
+    popular_count = len(popular_ids)
     
-    if popular_ids:
-        # Fetch actual template objects
-        # To preserve order of popularity, we can't just use IN clause blindly without re-sorting
-        fetched = session.exec(select(PromptTemplate).where(PromptTemplate.id.in_(popular_ids))).all()
-        fetched_map = {t.id: t for t in fetched}
-        for pid in popular_ids:
-            if pid in fetched_map:
-                popular_templates.append(fetched_map[pid])
+    result_templates = []
     
-    # 2. If we need more, fetch by created_at desc (excluding already found)
-    if len(popular_templates) < limit:
-        remaining = limit - len(popular_templates)
-        query = select(PromptTemplate).order_by(desc(PromptTemplate.created_at)).limit(remaining)
+    # Logic:
+    # We essentially have a virtual list: [Popular Templates (by count)] + [Other Templates (by created_at)]
+    # We need to slice this virtual list from `offset` to `offset + limit`
+    
+    # Case 1: The requested range is entirely within the "Popular" segment
+    if offset < popular_count:
+        # Get IDs for the slice
+        slice_end = min(offset + limit, popular_count)
+        ids_to_fetch = popular_ids[offset:slice_end]
         
+        fetched = session.exec(select(PromptTemplate).where(PromptTemplate.id.in_(ids_to_fetch))).all()
+        fetched_map = {t.id: t for t in fetched}
+        
+        for pid in ids_to_fetch:
+            if pid in fetched_map:
+                result_templates.append(fetched_map[pid])
+                
+        # If we still need more to fill the limit (because some IDs might have been invalid/deleted, or we reached end of popular)
+        # Note: If fetched items are fewer than expected due to deletion, we might need to adjust, 
+        # but for simplicity we assume integrity.
+        
+        # If the slice didn't fill the limit (i.e. we crossed the boundary to "Others")
+        if len(result_templates) < limit:
+             remaining_limit = limit - len(result_templates)
+             # We need to fetch from "Others", skipping ALL popular IDs (already used or checked)
+             # And we start from the beginning of "Others" list (offset 0 relative to others)
+             
+             query = select(PromptTemplate).order_by(desc(PromptTemplate.created_at))
+             if popular_ids:
+                 query = query.where(PromptTemplate.id.notin_(popular_ids))
+             
+             query = query.limit(remaining_limit)
+             others = session.exec(query).all()
+             result_templates.extend(others)
+             
+    # Case 2: The requested range starts after "Popular" segment
+    else:
+        # We are purely in the "Others" segment
+        # The offset relative to "Others" is `offset - popular_count`
+        relative_offset = offset - popular_count
+        
+        query = select(PromptTemplate).order_by(desc(PromptTemplate.created_at))
         if popular_ids:
             query = query.where(PromptTemplate.id.notin_(popular_ids))
             
+        query = query.offset(relative_offset).limit(limit)
         others = session.exec(query).all()
-        popular_templates.extend(others)
-            
-    return popular_templates
+        result_templates.extend(others)
+        
+    return result_templates
 
 @router.get("/stats/recent", response_model=List[PromptTemplate])
 def get_recent_templates(

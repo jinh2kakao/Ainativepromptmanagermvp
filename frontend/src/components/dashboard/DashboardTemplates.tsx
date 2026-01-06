@@ -1,20 +1,29 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { Clock, TrendingUp } from 'lucide-react';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { Clock, TrendingUp, Plus } from 'lucide-react';
 import { api } from '@/utils/axios';
 import { TemplateCard } from './TemplateCard';
 import { useUser } from '@/features/auth/useUser';
 import { CategoryGrid } from '@/components/common/CategoryGrid';
+import { cn } from '@/lib/utils'; // Ensure cn is imported
+import { Button } from '@/components/ui/button';
+import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 
-// Helper for fetching
-const fetchPopularTemplates = async () => {
-    const res = await api.get('/api/templates/stats/popular');
+// Helper for fetching popular templates with pagination
+const fetchPopularTemplates = async ({ pageParam = 0 }) => {
+    const res = await api.get('/api/templates/stats/popular', {
+        params: {
+            offset: pageParam,
+            limit: 6
+        }
+    });
     return res.data;
 };
 
 const fetchRecentTemplates = async () => {
     const res = await api.get('/api/templates/stats/recent');
+    // Ensure unique IDs just in case, though backend handles it mostly
     return res.data;
 };
 
@@ -29,21 +38,67 @@ const fetchAllCategories = async () => {
 };
 
 export function DashboardTemplates() {
-    const { data: user } = useUser();
+    const { data: user, isLoading: isUserLoading } = useUser();
     const router = useRouter();
+    // isAuthenticated is true if user exists. 
+    // If !user and !isUserLoading, it means Guest.
     const isAuthenticated = !!user;
 
-    const { data: popularTemplates = [], isLoading: isPopularLoading } = useQuery({
+    // --- Trending Now (Infinite Scroll) ---
+    const {
+        data: popularData,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: isPopularLoading
+    } = useInfiniteQuery({
         queryKey: ['templates', 'popular'],
         queryFn: fetchPopularTemplates,
+        initialPageParam: 0,
+        getNextPageParam: (lastPage, allPages) => {
+            // Stop if we reached 30 items or if last page was empty/insufficient
+            const totalFetched = allPages.flatMap(p => p).length;
+            if (totalFetched >= 30 || lastPage.length < 6) {
+                return undefined;
+            }
+            return totalFetched; // Return current count as next offset
+        },
     });
 
+    // Flatten popular templates
+    const popularTemplates = React.useMemo(() => {
+        return popularData?.pages.flatMap(page => page) || [];
+    }, [popularData]);
+
+    // Intersection Observer for Infinite Scroll
+    const loadMoreRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasNextPage, fetchNextPage]);
+
+
+    // --- Recent Templates ---
     const { data: recentTemplates = [] } = useQuery({
         queryKey: ['templates', 'recent'],
         queryFn: fetchRecentTemplates,
         enabled: isAuthenticated,
     });
 
+    // --- Categories ---
     const { data: rootCategories = [] } = useQuery({
         queryKey: ['categories', 'root'],
         queryFn: fetchRootCategories,
@@ -64,44 +119,71 @@ export function DashboardTemplates() {
     }, [allCategories]);
 
     // Enrich templates with category object
-    const enrichedPopularTemplates = React.useMemo(() =>
-        popularTemplates.map((t: any) => ({ ...t, category: categoryMap[t.category_id] || null })),
-        [popularTemplates, categoryMap]
-    );
+    // Helper function
+    const enrich = (templates: any[]) => templates.map((t: any) => ({
+        ...t,
+        category: categoryMap[t.category_id] || null
+    }));
 
-    const enrichedRecentTemplates = React.useMemo(() =>
-        recentTemplates.map((t: any) => ({ ...t, category: categoryMap[t.category_id] || null })),
-        [recentTemplates, categoryMap]
-    );
+    const enrichedPopular = React.useMemo(() => enrich(popularTemplates), [popularTemplates, categoryMap]);
+    const enrichedRecent = React.useMemo(() => enrich(recentTemplates), [recentTemplates, categoryMap]);
+
+    const handleNewPrompt = () => {
+        router.push('/prompts/new');
+    };
 
     return (
         <div className="space-y-10 mb-8">
-            {/* A. Welcome Message (Authenticated Users Only) */}
-            {isAuthenticated && user && (
-                <section className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        Welcome back, {user.name || user.email?.split('@')[0]}! 👋
-                    </h1>
-                    <p className="text-gray-600 mt-1">오늘도 생산적인 하루 되세요.</p>
+            {/* A. Welcome Message & CTA */}
+            {/* Display for both Authenticated and Guest (once user loading finishes) */}
+            {!isUserLoading && (
+                <section className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            {isAuthenticated
+                                ? `Welcome back, ${user?.name || user?.email?.split('@')[0]}! 👋`
+                                : `Welcome, Guest! 👋`
+                            }
+                        </h1>
+                        <p className="text-gray-600 mt-1">
+                            {isAuthenticated
+                                ? "오늘도 생산적인 하루 되세요."
+                                : "AI 네이티브 프롬프트 매니저에 오신 것을 환영합니다."
+                            }
+                        </p>
+                    </div>
+                    <Button
+                        onClick={handleNewPrompt}
+                        className="shrink-0 gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 h-[42px]" // Explicit height/padding for button consistency
+                    >
+                        <Plus className="w-4 h-4" />
+                        NEW POOMPT
+                    </Button>
                 </section>
             )}
 
-            {/* A. Recent Templates (Authenticated Users with History) */}
-            {isAuthenticated && enrichedRecentTemplates.length > 0 && (
+            {/* B. Recent Templates (Authenticated Users with History) */}
+            {isAuthenticated && enrichedRecent.length > 0 && (
                 <section>
                     <div className="flex items-center gap-2 mb-4">
                         <Clock className="w-5 h-5 text-blue-600" />
                         <h2 className="text-lg font-bold text-gray-900">🕒 Jump back in</h2>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {enrichedRecentTemplates.map((template: any) => (
-                            <TemplateCard key={template.id} template={template} className="h-full" />
-                        ))}
-                    </div>
+
+                    <ResponsiveMasonry
+                        columnsCountBreakPoints={{ 350: 1, 750: 2, 1024: 4 }}
+                    >
+                        <Masonry gutter="1rem">
+                            {enrichedRecent.map((template: any) => (
+                                <TemplateCard key={template.id} template={template} className="mb-4" />
+                            ))}
+                        </Masonry>
+                    </ResponsiveMasonry>
+
                 </section>
             )}
 
-            {/* B. Popular Templates */}
+            {/* C. Popular Templates */}
             <section>
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -116,22 +198,32 @@ export function DashboardTemplates() {
                     </button>
                 </div>
 
-                {isPopularLoading ? (
-                    <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="bg-gray-100 rounded-xl animate-pulse h-48 break-inside-avoid mb-6" />
+                {/* Popular Grid (Masonry) */}
+                <ResponsiveMasonry
+                    columnsCountBreakPoints={{ 350: 1, 768: 2, 1024: 3, 1280: 4 }}
+                >
+                    <Masonry gutter="1.5rem">
+                        {enrichedPopular.map((template: any) => (
+                            <TemplateCard key={template.id} template={template} className="mb-6" />
                         ))}
-                    </div>
-                ) : (
-                    <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
-                        {enrichedPopularTemplates.map((template: any) => (
-                            <TemplateCard key={template.id} template={template} className="mb-6 break-inside-avoid" />
-                        ))}
-                    </div>
-                )}
+
+                        {/* Skeleton Loading for Next Page - Inside Masonry? mixing elements is tricky. 
+                             Masonry expects children to be items. 
+                             If we render skeletons as children, they will flow too. 
+                         */}
+                        {(isPopularLoading || isFetchingNextPage) && (
+                            Array.from({ length: 4 }).map((_, i) => (
+                                <div key={`loading-${i}`} className="bg-gray-100 rounded-xl animate-pulse h-48 mb-6" />
+                            ))
+                        )}
+                    </Masonry>
+                </ResponsiveMasonry>
+
+                {/* Infinite Scroll Trigger */}
+                <div ref={loadMoreRef} className="h-4 w-full" />
             </section>
 
-            {/* C. Category Shortcuts */}
+            {/* D. Category Shortcuts */}
             {rootCategories.length > 0 && (
                 <section>
                     <h2 className="text-lg font-bold text-gray-900 mb-4">📂 Explore by Category</h2>

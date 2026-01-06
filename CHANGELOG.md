@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 
 
+## [2026-01-06] v3.5.2 - Dashboard & List UX Improvements
+- **Changed**:
+  - **Dashboard**:
+    - **Guest Welcome**: Added specialized welcome section for guest users with a direct "New Prompt" call-to-action.
+    - **Trending Now**: Implemented infinite scroll (load more) pagination, expanding the list from 6 to 30 items.
+    - **Masonry Layout**: Applied `react-responsive-masonry` to "Trending Now" and "Jump back in" sections for dynamic card heights and optimal LTR visual flow.
+  - **Template List**:
+    - **Category Persistence**: Implemented URL synchronization (`?category=...`), ensuring category filters are preserved when navigating back from detail pages.
+    - **Visual Order**: Replaced CSS Column layout with Masonry to fix top-to-bottom ordering issues, ensuring logical left-to-right reading order (1, 2, 3, 4...).
+  - **Backend**:
+    - **Pagination**: Updated `/api/templates/stats/popular` to support `offset` and `limit` parameters for efficient data loading.
+- **Reason**: To improve user retention (Guest onboarding), engagement (Trending exploration), and usability (Navigation persistence and logical layout).
+- **Impact**:
+  - **UX**: Browsing templates is smoother with maintained context and logical ordering.
+  - **Performance**: Trending list loads efficiently with pagination.
+  - **Engagement**: Guests are immediately invited to create content.
+
 ## [2026-01-05] v3.5.1 - Template Experience Enhancement
 - **Changed**:
   - **Template Detail Page**:
