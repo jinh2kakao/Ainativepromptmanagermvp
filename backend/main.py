@@ -67,8 +67,8 @@ async def lifespan(app: FastAPI):
     # Start the worker loop in a separate thread
     # Daemon thread ensures it dies when main process dies
     worker_thread = threading.Thread(target=worker_loop, daemon=True)
-    # worker_thread.start() # Temporarily disabled for debugging
-    print("Optimization Worker thread started within Main App (Disabled).")
+    worker_thread.start() 
+    print("Optimization Worker thread started within Main App.")
     
     yield
 
