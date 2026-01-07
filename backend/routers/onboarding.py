@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 from database import get_session
-from models import PromptTemplate, Category, TemplateUsage, User
+from models import PromptTemplate, Category, TemplateUsage, User, CategoryTemplateLink
 from dependencies import get_current_user_optional
 
 router = APIRouter(
@@ -14,6 +14,8 @@ router = APIRouter(
     tags=["onboarding"],
     responses={404: {"description": "Not found"}},
 )
+
+# ... (Previous code remains)
 
 @router.get("/templates", response_model=List[PromptTemplate])
 def get_onboarding_templates(
@@ -25,40 +27,50 @@ def get_onboarding_templates(
     """
     Get top templates for onboarding based on category and mode.
     Defaults to 'assistance' mode for v3.6.0+ onboarding flow.
+    Uses CategoryTemplateLink (Many-to-Many) for recommendations.
     """
-    # 1. Find category by value (case-insensitive) with eager loading of children
-    cat_obj = session.exec(
-        select(Category)
-        .where(Category.value == category.lower())
-        .options(selectinload(Category.children))
-    ).first()
-    
-    # If category not found, try finding by name (fallback)
+    # 1. Find category by value/ID/name
+    cat_obj = None
+    try:
+        cat_uuid = uuid.UUID(category)
+        cat_obj = session.get(Category, cat_uuid)
+    except ValueError:
+        pass
+
     if not cat_obj:
-        cat_obj = session.exec(
-            select(Category)
-            .where(Category.name == category)
-            .options(selectinload(Category.children))
-        ).first()
-        
-    query = select(PromptTemplate).options(selectinload(PromptTemplate.category))
+        cat_obj = session.exec(select(Category).where(Category.value == category)).first()
+    
+    if not cat_obj:
+        cat_obj = session.exec(select(Category).where(Category.name == category)).first()
+    
+    if not cat_obj:
+        # If category not found, return empty or default?
+        return []
+
+    # 2. Get target category IDs (Parent + Children)
+    target_category_ids = [cat_obj.id]
+    
+    # Check for children categories to include them as well
+    children = session.exec(select(Category).where(Category.parent_id == cat_obj.id)).all()
+    if children:
+        target_category_ids.extend([c.id for c in children])
+
+    # 3. Query via Link Table
+    # We want templates linked to ANY of these categories
+    query = (
+        select(PromptTemplate)
+        .join(CategoryTemplateLink, PromptTemplate.id == CategoryTemplateLink.template_id)
+        .where(CategoryTemplateLink.category_id.in_(target_category_ids))
+        .options(selectinload(PromptTemplate.category)) # Load structure category for display info
+    )
     
     # Filter by Mode
-    # Use case-insensitive check just in case, though Enum is strict usually
     if mode.lower() == "simple":
         query = query.where(PromptTemplate.mode == "simple")
     else:
         query = query.where(PromptTemplate.mode == "assistance")
     
-    if cat_obj:
-        # Check if it's a parent category (has children)
-        target_category_ids = [cat_obj.id]
-        if cat_obj.children:
-            target_category_ids.extend([c.id for c in cat_obj.children])
-            
-        query = query.where(PromptTemplate.category_id.in_(target_category_ids))
-    
-    # Sort by Usage Count (Popularity)
+    # Sort by Usage and Recency
     usage_subq = (
         select(TemplateUsage.template_id, func.count(TemplateUsage.id).label("usage_count"))
         .group_by(TemplateUsage.template_id)
@@ -72,13 +84,7 @@ def get_onboarding_templates(
         .limit(limit)
     )
     
-    templates = session.exec(query).all()
-    
-    # Validation: If we requested assistance but got none, DO NOT fallback to simple blindly if design dictates strictness.
-    # But for MVP reliability, if we have 0 assistance templates, maybe fallback OR return empty?
-    # Let's return empty so frontend handles "No templates found" or we ensure seed script runs.
-    
-    return templates
+    return session.exec(query).all()
 
 @router.post("/track")
 def track_onboarding_event(

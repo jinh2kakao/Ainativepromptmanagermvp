@@ -2,7 +2,13 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from database import get_session
-from models import User, Prompt, Category, PromptTemplate, AuditLog, UserRole, PromptMode, UserRead, PromptRead, Project, UserType, WithdrawnUser
+from models import User, Prompt, Category, PromptTemplate, AuditLog, UserRole, PromptMode, UserRead, PromptRead, Project, UserType, WithdrawnUser, PromptTemplateUpdate, CategoryTemplateLink
+
+# ... (Previous code remains)
+
+
+
+# ... (Rest of the file)
 
 from dependencies import get_current_admin
 import uuid
@@ -353,6 +359,72 @@ def sync_categories(session: Session = Depends(get_session)):
     session.commit()
     return {"message": f"Categories synced. {count} new categories created."}
 
+@router.get("/categories/{category_id}/templates", response_model=List[PromptTemplate])
+def list_category_onboarding_templates(
+    category_id: uuid.UUID,
+    session: Session = Depends(get_session)
+):
+    """
+    Get templates explicitly linked to this category for onboarding recommendations.
+    Uses the CategoryTemplateLink join table.
+    """
+    category = session.get(Category, category_id)
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+        
+    return category.onboarding_templates
+
+
+@router.post("/categories/{category_id}/templates/{template_id}")
+def link_template_to_category_onboarding(
+    category_id: uuid.UUID, 
+    template_id: uuid.UUID, 
+    session: Session = Depends(get_session)
+):
+    """
+    Link a template to a category for Onboarding recommendations.
+    does NOT change the template's physical category_id.
+    """
+    link = session.exec(
+        select(CategoryTemplateLink)
+        .where(
+            CategoryTemplateLink.category_id == category_id,
+            CategoryTemplateLink.template_id == template_id
+        )
+    ).first()
+    
+    if not link:
+        new_link = CategoryTemplateLink(category_id=category_id, template_id=template_id)
+        session.add(new_link)
+        session.commit()
+        
+    return {"message": "Template linked for onboarding"}
+
+@router.delete("/categories/{category_id}/templates/{template_id}")
+def unlink_template_from_category_onboarding(
+    category_id: uuid.UUID, 
+    template_id: uuid.UUID, 
+    session: Session = Depends(get_session)
+):
+    """
+    Unlink a template from a category's Onboarding recommendations.
+    Does NOT delete the template.
+    """
+    link = session.exec(
+        select(CategoryTemplateLink)
+        .where(
+            CategoryTemplateLink.category_id == category_id,
+            CategoryTemplateLink.template_id == template_id
+        )
+    ).first()
+    
+    if not link:
+        raise HTTPException(status_code=404, detail="Link not found")
+        
+    session.delete(link)
+    session.commit()
+    return {"message": "Template unlinked from onboarding"}
+
 # --- Template Management ---
 
 @router.get("/templates", response_model=List[PromptTemplate])
@@ -364,6 +436,7 @@ def list_templates(
     mode: Optional[PromptMode] = None,
     search: Optional[str] = None,
     has_image: Optional[bool] = Query(None, alias="hasImage"),
+    uncategorized: Optional[bool] = Query(None),
     session: Session = Depends(get_session)
 ):
     query = select(PromptTemplate)
@@ -374,7 +447,9 @@ def list_templates(
         if category:
             category_id = category.id
     
-    if category_id:
+    if uncategorized:
+        query = query.where(PromptTemplate.category_id == None)
+    elif category_id:
         # Check if it's a parent category and include children if so
         # We need to query Category table
         children = session.exec(select(Category.id).where(Category.parent_id == category_id)).all()
@@ -421,7 +496,7 @@ def create_template(template: PromptTemplate, session: Session = Depends(get_ses
     return template
 
 @router.put("/templates/{template_id}", response_model=PromptTemplate)
-def update_template(template_id: uuid.UUID, template_data: PromptTemplate, session: Session = Depends(get_session)):
+def update_template(template_id: uuid.UUID, template_data: PromptTemplateUpdate, session: Session = Depends(get_session)):
     template = session.get(PromptTemplate, template_id)
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")

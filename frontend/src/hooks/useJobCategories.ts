@@ -6,6 +6,8 @@ export interface CategoryOption {
     id?: string;
     value: string;
     label: string;
+    icon?: string;
+    description?: string;
     subCategories?: CategoryOption[];
 }
 
@@ -16,7 +18,7 @@ export function useJobCategories() {
             try {
                 const response = await api.get('/api/categories/');
                 const allCategories = response.data;
-                console.log('[useJobCategories] Raw categories:', allCategories);
+                // console.log('[useJobCategories] Raw categories:', allCategories);
 
                 // Transform flat list to hierarchy
                 const parents = allCategories
@@ -29,14 +31,18 @@ export function useJobCategories() {
                         .sort((a: any, b: any) => a.order - b.order)
                         .map((child: any) => ({
                             value: child.value,
-                            label: child.name || child.value || 'Unnamed Sub', // Fallback
-                            id: child.id // Add ID for completeness
+                            label: child.name || child.value || 'Unnamed Sub',
+                            id: child.id,
+                            icon: child.icon,
+                            description: child.description
                         }));
 
                     return {
                         value: parent.value,
-                        label: parent.name || parent.value || 'Unnamed Category', // Fallback
-                        id: parent.id, // Add ID for completeness
+                        label: parent.name || parent.value || 'Unnamed Category',
+                        id: parent.id,
+                        icon: parent.icon,
+                        description: parent.description,
                         subCategories: children
                     };
                 }) as CategoryOption[];

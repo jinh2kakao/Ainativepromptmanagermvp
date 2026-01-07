@@ -153,12 +153,19 @@ class PromptUpdate(SQLModel):
 
 # Admin & Advanced Features Models
 
+class CategoryTemplateLink(SQLModel, table=True):
+    category_id: uuid.UUID = Field(foreign_key="category.id", primary_key=True)
+    template_id: uuid.UUID = Field(foreign_key="prompttemplate.id", primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 class Category(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     parent_id: Optional[uuid.UUID] = Field(default=None, foreign_key="category.id")
     name: str
     value: str
     order: int = Field(default=0)
+    icon: Optional[str] = Field(default=None) # [NEW] Icon name or URL
+    description: Optional[str] = Field(default=None) # [NEW] Description text
     config_json: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     
     parent: Optional["Category"] = Relationship(
@@ -175,12 +182,20 @@ class Category(SQLModel, table=True):
         }
     )
 
+    # Many-to-Many for Onboarding
+    onboarding_templates: List["PromptTemplate"] = Relationship(
+        back_populates="onboarding_categories",
+        link_model=CategoryTemplateLink
+    )
+
 class CategoryRead(SQLModel):
     id: uuid.UUID
     parent_id: Optional[uuid.UUID]
     name: str
     value: str
     order: int
+    icon: Optional[str] = None
+    description: Optional[str] = None
     config_json: Optional[Dict[str, Any]] = None
 
 class PromptTemplate(SQLModel, table=True):
@@ -198,6 +213,23 @@ class PromptTemplate(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     category: Optional["Category"] = Relationship()
+
+    # Many-to-Many for Onboarding
+    onboarding_categories: List["Category"] = Relationship(
+        back_populates="onboarding_templates",
+        link_model=CategoryTemplateLink
+    )
+
+class PromptTemplateUpdate(SQLModel):
+    category_id: Optional[uuid.UUID] = None
+    mode: Optional[PromptMode] = None
+    title: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    content: Optional[str] = None
+    applicable_agents: Optional[List[str]] = None
+    preview_image_url: Optional[str] = None
+    is_default: Optional[bool] = None
 
 class TemplateUsage(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)

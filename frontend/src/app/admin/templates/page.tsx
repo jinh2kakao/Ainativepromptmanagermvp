@@ -5,6 +5,16 @@ import { api } from '@/utils/axios';
 import { Plus, Edit2, Trash2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { AiAgent } from '@/types';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PromptTemplate {
     id: string;
@@ -54,6 +64,11 @@ export default function TemplateManagementPage() {
     const [filterChildId, setFilterChildId] = useState('');
     const [filterMode, setFilterMode] = useState('');
     const [filterHasImage, setFilterHasImage] = useState('');
+    const [filterUncategorized, setFilterUncategorized] = useState(false);
+
+    // Delete Alert State
+    const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+    const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
 
     // Score state
     const [scores, setScores] = useState<Record<string, number>>({});
@@ -113,7 +128,8 @@ export default function TemplateManagementPage() {
                 category_id: targetCategoryId || undefined,
                 mode: filterMode || undefined,
                 search: searchTerm || undefined,
-                hasImage: filterHasImage === '' ? undefined : filterHasImage === 'true'
+                hasImage: filterHasImage === '' ? undefined : filterHasImage === 'true',
+                uncategorized: filterUncategorized ? true : undefined
             };
 
             const res = await api.get('/api/admin/templates', { params });
@@ -158,7 +174,7 @@ export default function TemplateManagementPage() {
             loadTemplates(true);
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchTerm, filterParentId, filterChildId, filterMode, filterHasImage]);
+    }, [searchTerm, filterParentId, filterChildId, filterMode, filterHasImage, filterUncategorized]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -191,14 +207,24 @@ export default function TemplateManagementPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('정말로 이 템플릿을 삭제하시겠습니까?')) return;
+    const openDeleteAlert = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDeletingTemplateId(id);
+        setIsDeleteAlertOpen(true);
+    };
+
+    const executeDelete = async () => {
+        if (!deletingTemplateId) return;
+
         try {
-            await api.delete(`/api/admin/templates/${id}`);
+            await api.delete(`/api/admin/templates/${deletingTemplateId}`);
             toast.success('템플릿이 삭제되었습니다.');
             loadTemplates(true); // Reload list
         } catch (error) {
             toast.error('삭제 실패');
+        } finally {
+            setIsDeleteAlertOpen(false);
+            setDeletingTemplateId(null);
         }
     };
 
@@ -352,7 +378,8 @@ export default function TemplateManagementPage() {
                             setFilterParentId(e.target.value);
                             setFilterChildId(''); // Reset child filter when parent changes
                         }}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        disabled={filterUncategorized}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
                     >
                         <option value="">대분류 전체</option>
                         {rootCategories.map(c => (
@@ -365,7 +392,8 @@ export default function TemplateManagementPage() {
                         <select
                             value={filterChildId}
                             onChange={(e) => setFilterChildId(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            disabled={filterUncategorized}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
                         >
                             <option value="">소분류 전체</option>
                             {subCategories.map(c => (
@@ -392,6 +420,27 @@ export default function TemplateManagementPage() {
                         <option value="true">이미지 있음</option>
                         <option value="false">이미지 없음</option>
                     </select>
+
+
+                    <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                        <input
+                            type="checkbox"
+                            id="uncategorized"
+                            checked={filterUncategorized}
+                            onChange={(e) => {
+                                setFilterUncategorized(e.target.checked);
+                                if (e.target.checked) {
+                                    setFilterParentId('');
+                                    setFilterChildId('');
+                                }
+                            }}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="uncategorized" className="text-sm text-gray-700 whitespace-nowrap cursor-pointer">
+                            미분류만 보기
+                        </label>
+                    </div>
+
                     <button
                         onClick={() => openModal()}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
@@ -467,7 +516,7 @@ export default function TemplateManagementPage() {
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(template.id)}
+                                                    onClick={(e) => openDeleteAlert(template.id, e)}
                                                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -495,255 +544,276 @@ export default function TemplateManagementPage() {
             </div>
 
             {/* Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-gray-200">
-                            <h3 className="text-lg font-bold text-gray-900">
-                                {editingTemplate ? '템플릿 수정' : '새 템플릿 추가'}
-                            </h3>
-                        </div>
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">템플릿명</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="템플릿 이름을 입력하세요"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                />
+            {
+                isModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <div className="p-6 border-b border-gray-200">
+                                <h3 className="text-lg font-bold text-gray-900">
+                                    {editingTemplate ? '템플릿 수정' : '새 템플릿 추가'}
+                                </h3>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">설명 (Description)</label>
-                                <input
-                                    type="text"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    placeholder="템플릿에 대한 설명을 입력하세요"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                />
-                            </div>
-
-                            {/* Category Selection (2-depth) */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">대분류</label>
-                                    <select
-                                        value={formParentId}
-                                        onChange={(e) => {
-                                            setFormParentId(e.target.value);
-                                            setFormData(prev => ({ ...prev, category_id: '' })); // Reset sub-category
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                    >
-                                        <option value="">대분류 선택</option>
-                                        {rootCategories.map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">소분류</label>
-                                    <select
-                                        value={formData.category_id}
-                                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                                        disabled={!formParentId}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
-                                    >
-                                        <option value="">소분류 선택</option>
-                                        {categories.filter(c => c.parent_id === formParentId).map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">모드</label>
-                                    <select
-                                        value={formData.mode}
-                                        onChange={(e) => setFormData({ ...formData, mode: e.target.value as any })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                                    >
-                                        <option value="simple">Simple</option>
-                                        <option value="assistance">Assistance</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">미리보기 이미지 URL</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">템플릿명</label>
                                     <input
                                         type="text"
-                                        value={formData.preview_image_url || ''}
-                                        onChange={(e) => setFormData({ ...formData, preview_image_url: e.target.value })}
-                                        placeholder="https://example.com/image.png"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="템플릿 이름을 입력하세요"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                     />
                                 </div>
-                            </div>
-
-                            {/* Preview Image Check */}
-                            {formData.preview_image_url && (
-                                <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden relative border border-gray-200">
-                                    <img
-                                        src={formData.preview_image_url}
-                                        alt="Preview"
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=Invalid+Image+URL';
-                                        }}
-                                    />
-                                </div>
-                            )}
-
-                            {formData.mode === 'simple' ? (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">내용</label>
-                                    <textarea
-                                        value={formData.content}
-                                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                                        rows={8}
-                                        placeholder="템플릿 내용을 입력하세요."
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">설명 (Description)</label>
+                                    <input
+                                        type="text"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="템플릿에 대한 설명을 입력하세요"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                     />
                                 </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <label className="block text-sm font-medium text-gray-700">템플릿 구조 (Groups & Items)</label>
-                                        <button
-                                            type="button"
-                                            onClick={addGroup}
-                                            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+
+                                {/* Category Selection (2-depth) */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">대분류</label>
+                                        <select
+                                            value={formParentId}
+                                            onChange={(e) => {
+                                                setFormParentId(e.target.value);
+                                                setFormData(prev => ({ ...prev, category_id: '' })); // Reset sub-category
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                         >
-                                            <Plus className="w-3 h-3" /> 그룹 추가
-                                        </button>
+                                            <option value="">대분류 선택</option>
+                                            {rootCategories.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                    <div className="space-y-4 border rounded-lg p-4 bg-gray-50">
-                                        {groups.length === 0 && (
-                                            <p className="text-sm text-gray-500 text-center py-4">그룹을 추가하여 템플릿을 구성하세요.</p>
-                                        )}
-                                        {groups.map((group, gIndex) => (
-                                            <div key={gIndex} className="bg-white border border-gray-200 rounded-lg p-3 space-y-3">
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="그룹명 (예: Persona)"
-                                                        value={group.groupName}
-                                                        onChange={(e) => updateGroupName(gIndex, e.target.value)}
-                                                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm font-medium"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeGroup(gIndex)}
-                                                        className="text-red-500 hover:text-red-600 p-1"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                                <div className="pl-4 space-y-2">
-                                                    {group.items.map((item, iIndex) => (
-                                                        <div key={iIndex} className="flex items-center gap-2">
-                                                            <input
-                                                                type="text"
-                                                                placeholder="항목명 (Label)"
-                                                                value={item.label}
-                                                                onChange={(e) => updateItem(gIndex, iIndex, 'label', e.target.value)}
-                                                                className="w-1/3 px-2 py-1 border border-gray-300 rounded text-sm"
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                placeholder="기본값 (Value)"
-                                                                value={item.value}
-                                                                onChange={(e) => updateItem(gIndex, iIndex, 'value', e.target.value)}
-                                                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeItem(gIndex, iIndex)}
-                                                                className="text-gray-400 hover:text-red-500"
-                                                            >
-                                                                <Trash2 className="w-3 h-3" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => addItem(gIndex)}
-                                                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-1"
-                                                    >
-                                                        <Plus className="w-3 h-3" /> 항목 추가
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">소분류</label>
+                                        <select
+                                            value={formData.category_id}
+                                            onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                            disabled={!formParentId}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                                        >
+                                            <option value="">소분류 선택</option>
+                                            {categories.filter(c => c.parent_id === formParentId).map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Applicable Agents */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">적용 가능한 AI 에이전트</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {availableAgents.filter(a => a.is_active).map((agent) => {
-                                        const isSelected = formData.applicable_agents?.includes(agent.id);
-                                        return (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">모드</label>
+                                        <select
+                                            value={formData.mode}
+                                            onChange={(e) => setFormData({ ...formData, mode: e.target.value as any })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                        >
+                                            <option value="simple">Simple</option>
+                                            <option value="assistance">Assistance</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">미리보기 이미지 URL</label>
+                                        <input
+                                            type="text"
+                                            value={formData.preview_image_url || ''}
+                                            onChange={(e) => setFormData({ ...formData, preview_image_url: e.target.value })}
+                                            placeholder="https://example.com/image.png"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Preview Image Check */}
+                                {formData.preview_image_url && (
+                                    <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden relative border border-gray-200">
+                                        <img
+                                            src={formData.preview_image_url}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=Invalid+Image+URL';
+                                            }}
+                                        />
+                                    </div>
+                                )}
+
+                                {formData.mode === 'simple' ? (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">내용</label>
+                                        <textarea
+                                            value={formData.content}
+                                            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                            rows={8}
+                                            placeholder="템플릿 내용을 입력하세요."
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="block text-sm font-medium text-gray-700">템플릿 구조 (Groups & Items)</label>
                                             <button
-                                                key={agent.id}
                                                 type="button"
-                                                onClick={() => {
-                                                    const current = formData.applicable_agents || [];
-                                                    let updated;
-                                                    if (current.includes(agent.id)) {
-                                                        updated = current.filter(a => a !== agent.id);
-                                                    } else {
-                                                        updated = [...current, agent.id];
-                                                    }
-                                                    setFormData(prev => ({ ...prev, applicable_agents: updated }));
-                                                }}
-                                                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${isSelected
-                                                    ? 'bg-blue-100 text-blue-800 border-blue-200 border'
-                                                    : 'bg-gray-100 text-gray-600 border-gray-200 border hover:bg-gray-200'
-                                                    }`}
+                                                onClick={addGroup}
+                                                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
                                             >
-                                                {agent.name}
+                                                <Plus className="w-3 h-3" /> 그룹 추가
                                             </button>
-                                        );
-                                    })}
+                                        </div>
+                                        <div className="space-y-4 border rounded-lg p-4 bg-gray-50">
+                                            {groups.length === 0 && (
+                                                <p className="text-sm text-gray-500 text-center py-4">그룹을 추가하여 템플릿을 구성하세요.</p>
+                                            )}
+                                            {groups.map((group, gIndex) => (
+                                                <div key={gIndex} className="bg-white border border-gray-200 rounded-lg p-3 space-y-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="그룹명 (예: Persona)"
+                                                            value={group.groupName}
+                                                            onChange={(e) => updateGroupName(gIndex, e.target.value)}
+                                                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm font-medium"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeGroup(gIndex)}
+                                                            className="text-red-500 hover:text-red-600 p-1"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="pl-4 space-y-2">
+                                                        {group.items.map((item, iIndex) => (
+                                                            <div key={iIndex} className="flex items-center gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="항목명 (Label)"
+                                                                    value={item.label}
+                                                                    onChange={(e) => updateItem(gIndex, iIndex, 'label', e.target.value)}
+                                                                    className="w-1/3 px-2 py-1 border border-gray-300 rounded text-sm"
+                                                                />
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="기본값 (Value)"
+                                                                    value={item.value}
+                                                                    onChange={(e) => updateItem(gIndex, iIndex, 'value', e.target.value)}
+                                                                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeItem(gIndex, iIndex)}
+                                                                    className="text-gray-400 hover:text-red-500"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => addItem(gIndex)}
+                                                            className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-1"
+                                                        >
+                                                            <Plus className="w-3 h-3" /> 항목 추가
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Applicable Agents */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">적용 가능한 AI 에이전트</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {availableAgents.filter(a => a.is_active).map((agent) => {
+                                            const isSelected = formData.applicable_agents?.includes(agent.id);
+                                            return (
+                                                <button
+                                                    key={agent.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const current = formData.applicable_agents || [];
+                                                        let updated;
+                                                        if (current.includes(agent.id)) {
+                                                            updated = current.filter(a => a !== agent.id);
+                                                        } else {
+                                                            updated = [...current, agent.id];
+                                                        }
+                                                        setFormData(prev => ({ ...prev, applicable_agents: updated }));
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${isSelected
+                                                        ? 'bg-blue-100 text-blue-800 border-blue-200 border'
+                                                        : 'bg-gray-100 text-gray-600 border-gray-200 border hover:bg-gray-200'
+                                                        }`}
+                                                >
+                                                    {agent.name}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="flex items-center gap-2 pt-2">
-                                <input
-                                    type="checkbox"
-                                    id="is_default"
-                                    checked={formData.is_default}
-                                    onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <label htmlFor="is_default" className="text-sm text-gray-700">이 카테고리의 기본 템플릿으로 설정</label>
-                            </div>
+                                <div className="flex items-center gap-2 pt-2">
+                                    <input
+                                        type="checkbox"
+                                        id="is_default"
+                                        checked={formData.is_default}
+                                        onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <label htmlFor="is_default" className="text-sm text-gray-700">이 카테고리의 기본 템플릿으로 설정</label>
+                                </div>
 
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                                >
-                                    취소
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                >
-                                    저장
-                                </button>
-                            </div>
-                        </form>
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        저장
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+
+                )
+            }
+
+            {/* Delete Confirmation Alert */}
+            <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>정말로 삭제하시겠습니까?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            이 작업은 되돌릴 수 없습니다. 템플릿이 영구적으로 삭제됩니다.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDeletingTemplateId(null)}>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={executeDelete} className="bg-red-600 hover:bg-red-700">
+                            삭제
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div >
     );
 }
