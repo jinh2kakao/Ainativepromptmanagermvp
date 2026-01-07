@@ -46,6 +46,28 @@ export const creationSteps: Step[] = [
     }
 ];
 
+// Prompt Detail Page Onboarding Tour Steps
+export const promptDetailSteps: Step[] = [
+    {
+        targetId: 'tour-applicable-agents',
+        title: '적용 가능한 AI 에이전트',
+        description: '이 프롬프트에 적합한 AI 에이전트를 확인하세요.\nChatGPT, Claude, Gemini 등 어떤 AI와 가장 잘 작동하는지 알려드립니다.',
+        position: 'bottom'
+    },
+    {
+        targetId: 'tour-evaluation-button',
+        title: '설계 평가',
+        description: '프롬프트의 구조와 품질을 AI가 분석합니다.\n점수와 함께 개선점을 제공해 더 나은 프롬프트를 만들 수 있습니다.',
+        position: 'top'
+    },
+    {
+        targetId: 'tour-optimization-button',
+        title: 'AI 최적화',
+        description: 'AI가 자동으로 프롬프트를 개선합니다.\n더 명확하고 효과적인 결과를 얻을 수 있습니다.',
+        position: 'top'
+    }
+];
+
 interface ProductTourProps {
     steps?: Step[];
     storageKey?: string;

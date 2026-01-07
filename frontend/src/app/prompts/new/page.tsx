@@ -53,8 +53,9 @@ function NewPromptContent() {
             variables: data.variables,
             applicable_agents: data.applicable_agents,
         }, {
-            onSuccess: () => {
-                router.push('/');
+            onSuccess: (response: any) => {
+                // Redirect to the new prompt's detail page
+                router.push(`/prompts/view?id=${response.id}`);
             }
         });
     };

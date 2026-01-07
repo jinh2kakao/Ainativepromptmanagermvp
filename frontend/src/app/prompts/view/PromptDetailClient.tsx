@@ -9,6 +9,7 @@ import { supabase } from '@/utils/supabase/client';
 import { useEffect, useState } from 'react';
 
 import { PromptDetailSkeleton } from '@/components/ui-generated/PromptDetailSkeleton';
+import { ProductTour, promptDetailSteps } from '@/components/tour/ProductTour';
 
 export function PromptDetailClient() {
     const searchParams = useSearchParams();
@@ -119,6 +120,10 @@ export function PromptDetailClient() {
                 isDeleting={deleteMutation.isPending}
                 isUpdating={updateMutation.isPending}
                 onUpdateContent={handleUpdateContent}
+            />
+            <ProductTour
+                steps={promptDetailSteps}
+                storageKey="hasSeenPromptDetailTour"
             />
             {/* {isEditModalOpen && (
                 <PromptModal

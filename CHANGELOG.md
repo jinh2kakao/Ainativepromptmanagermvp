@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 
 
+## [2026-01-07] v3.7.0 - Prompt Detail Onboarding & Template Redirect
+- **Changed**:
+  - **Onboarding Flow**:
+    - **Prompt Detail Tour**: Implemented a dedicated 3-step onboarding tour for the Prompt Detail page, guiding users through "Applicable Agents", "Design Evaluation", and "AI Optimization" features.
+    - **Visibility Logic**: Updated `PromptDetailPage` to ensuring the "Applicable AI Agents" section is visible for owners even when empty, allowing the tour to trigger reliably.
+  - **Template Experience**:
+    - **Smart Redirect**: Creating a prompt from a template now redirects directly to the **Prompt Detail View** (instead of the home page), allowing users to immediately review and optimize their new prompt.
+- **Reason**: To increase feature adoption (Evaluation/Optimization) by educating users right after creation, and to streamline the template-to-prompt workflow.
+- **Impact**:
+  - **Engagement**: Users are more likely to use advanced features like AI Optimization.
+  - **UX**: Seamless transition from creation to refinement.
+
 ## [2026-01-06] v3.6.0 - Onboarding 2.0 & Guest Experience
 - **Changed**:
   - **Onboarding Flow**:

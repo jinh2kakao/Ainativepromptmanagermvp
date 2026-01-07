@@ -425,19 +425,23 @@ export function PromptDetailPage({
         <div className="relative">
           <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
             {/* Applicable Agents Section */}
-            {prompt.applicableAgents && prompt.applicableAgents.length > 0 && (
-              <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-gray-100">
+            {(prompt.applicableAgents?.length > 0 || isOwner) && (
+              <div id="tour-applicable-agents" className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-gray-100">
                 <h3 className="text-sm text-gray-700 mb-2 md:mb-3">적용 가능한 AI 에이전트</h3>
-                <div className="flex flex-wrap gap-1.5 md:gap-2">
-                  {prompt.applicableAgents.map((agent) => (
-                    <span
-                      key={agent}
-                      className="px-2.5 md:px-3 py-1.5 md:py-2 bg-indigo-50 text-indigo-700 rounded-lg text-xs md:text-sm border border-indigo-200 font-medium"
-                    >
-                      {agent}
-                    </span>
-                  ))}
-                </div>
+                {prompt.applicableAgents && prompt.applicableAgents.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 md:gap-2">
+                    {prompt.applicableAgents.map((agent) => (
+                      <span
+                        key={agent}
+                        className="px-2.5 md:px-3 py-1.5 md:py-2 bg-indigo-50 text-indigo-700 rounded-lg text-xs md:text-sm border border-indigo-200 font-medium"
+                      >
+                        {agent}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">등록된 에이전트가 없습니다.</p>
+                )}
               </div>
             )}
 
@@ -483,6 +487,7 @@ export function PromptDetailPage({
               <>
                 {/* Evaluation Button (Moved here for separation) */}
                 <Button
+                  id="tour-evaluation-button"
                   onClick={handleEvaluation}
                   disabled={isEvaluating}
                   variant="outline"
@@ -511,7 +516,7 @@ export function PromptDetailPage({
                     const isHighQuality = (prompt.latest_score || 0) >= 85;
 
                     return (
-                      <div className={isHighQuality ? "cursor-not-allowed" : ""}>
+                      <div id="tour-optimization-button" className={isHighQuality ? "cursor-not-allowed" : ""}>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
