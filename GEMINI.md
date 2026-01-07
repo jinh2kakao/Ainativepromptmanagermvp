@@ -37,9 +37,10 @@
 ```
 AinativePromptManagerMVP/
 ├── backend/                    # FastAPI 백엔드
-│   ├── routers/                # API 엔드포인트 (15개)
+│   ├── routers/                # API 엔드포인트 (16개)
 │   │   ├── admin.py            # 관리자 API
 │   │   ├── auth.py             # 인증 API
+│   │   ├── onboarding.py       # 온보딩 API (v3.6.0+)
 │   │   ├── projects.py         # 프로젝트 API
 │   │   ├── prompts.py          # 프롬프트 API
 │   │   ├── teams.py            # 팀 API
@@ -150,6 +151,8 @@ use library /vercel/next.js for routing docs
 ---
 ## 📋 버전 히스토리
 현재 버전의 주요 기능:
+- v3.6.0: Growth Onboarding & CategoryTemplateLink
+- v3.5.x: Dashboard Integration, Template Previews, Mobile Polish
 - v3.4.1: Member Withdrawal & Auth Stability
 - v3.4.0: Guest Experience & Reliability
 - v3.3.x: Community Features, Template System, Email Verification
