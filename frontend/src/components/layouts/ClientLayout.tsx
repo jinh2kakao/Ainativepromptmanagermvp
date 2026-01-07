@@ -108,7 +108,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         });
 
         return () => subscription.unsubscribe();
-    }, [setSession, setInitialized]);
+    }, [setSession, setInitialized, pathname]);
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
