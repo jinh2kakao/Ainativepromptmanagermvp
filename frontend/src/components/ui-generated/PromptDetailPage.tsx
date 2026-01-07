@@ -425,7 +425,7 @@ export function PromptDetailPage({
         <div className="relative">
           <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
             {/* Applicable Agents Section */}
-            {(prompt.applicableAgents?.length > 0 || isOwner) && (
+            {((prompt.applicableAgents?.length ?? 0) > 0 || isOwner) && (
               <div id="tour-applicable-agents" className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-gray-100">
                 <h3 className="text-sm text-gray-700 mb-2 md:mb-3">적용 가능한 AI 에이전트</h3>
                 {prompt.applicableAgents && prompt.applicableAgents.length > 0 ? (
