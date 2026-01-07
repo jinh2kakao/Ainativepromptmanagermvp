@@ -269,19 +269,8 @@ export function PromptForm({ prompt, onSave, onCancel, isSubmitting = false }: P
                                     onChange={(e) => {
                                         setCategory(e.target.value);
                                         setSubCategory('');
-                                        // [QA FIX] Clear content immediately when switching major category
-                                        if (mode === 'simple') {
-                                            setSimpleContent('');
-                                        } else {
-                                            setAssistanceStructure({
-                                                job: '',
-                                                persona: { profile: '', intent: '' },
-                                                asset: { knowledgeBase: '', styleGuide: '' },
-                                                instruction: { task: '', context: '', constraints: '' },
-                                                result: { format: '', example: '' }
-                                            });
-                                        }
-                                        setApplicableAgents([]); // Also clear agents
+                                        // Content is preserved on category change
+                                        // setApplicableAgents([]);
                                     }}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 >

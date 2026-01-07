@@ -18,11 +18,11 @@ export function useJobCategories() {
             try {
                 const response = await api.get('/api/categories/');
                 const allCategories = response.data;
-                // console.log('[useJobCategories] Raw categories:', allCategories);
+                console.log('[useJobCategories] Raw categories:', allCategories);
 
                 // Transform flat list to hierarchy
                 const parents = allCategories
-                    .filter((c: any) => !c.parent_id)
+                    .filter((c: any) => !c.parent_id || c.parent_id === null)
                     .sort((a: any, b: any) => a.order - b.order);
 
                 return parents.map((parent: any) => {
