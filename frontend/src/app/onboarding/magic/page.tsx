@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ArrowRight, Star } from 'lucide-react';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { TemplateCard } from '@/components/dashboard/TemplateCard';
+import { api } from '@/utils/axios';
 
 interface PromptTemplate {
     id: string;
@@ -32,10 +33,9 @@ export default function MagicPage() {
         queryKey: ['onboarding-templates', selectedCategory, 'assistance'],
         queryFn: async () => {
             if (!selectedCategory) return [];
-            // [MODIFIED] Fetch assistance mode templates
-            const res = await fetch(`/api/onboarding/templates?category=${selectedCategory}&mode=assistance`);
-            if (!res.ok) throw new Error('Failed to fetch');
-            return res.json() as Promise<PromptTemplate[]>;
+            // [FIX] Use api instance with correct base URL instead of relative fetch
+            const res = await api.get<PromptTemplate[]>(`/api/onboarding/templates/?category=${selectedCategory}&mode=assistance`);
+            return res.data;
         },
         enabled: !!selectedCategory,
     });
