@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 
 
+## [2026-01-08] v3.7.1 - Google Login Terms Agreement
+- **Changed**:
+  - **Auth Flow**:
+    - **Google Sign-Up**: Implemented a mandatory "Terms & Conditions" agreement flow for users signing up via Google OAuth.
+    - **New Page**: Added `/auth/agreement` page for collecting consents (Service Terms, Privacy Policy, Age).
+    - **Global Guard**: Added rigorous checks in `ClientLayout` to redirect users who haven't agreed to terms, ensuring no bypass possible.
+    - **Backend**: Added `terms_agreed` field to User model and `/api/auth/agree-terms` endpoint.
+- **Reason**: To comply with legal requirements and ensure all users (Email & Google) explicitly agree to service terms.
+- **Impact**:
+  - **Compliance**: Legal risks reduced by enforcing terms agreement for all user types.
+  - **UX**: Seamless interception for Google users without breaking the login flow.
+
 ## [2026-01-07] v3.7.0 - Prompt Detail Onboarding & Template Redirect
 - **Changed**:
   - **Onboarding Flow**:

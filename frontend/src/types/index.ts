@@ -51,6 +51,7 @@ export interface User {
   user_type: UserType;
   role: 'user' | 'admin';
   is_active: boolean;
+  terms_agreed?: boolean; // Added for Agreement Flow
   created_at: string;
   updated_at: string;
 }

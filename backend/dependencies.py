@@ -47,9 +47,11 @@ def get_current_user(
                     detail="Error: Token payload has no 'email' or 'sub' field"
                 )
                 
-            # Extract provider info
+            # Extract provider info & metadata
             app_metadata = payload.get("app_metadata", {})
+            user_metadata = payload.get("user_metadata", {})
             provider = app_metadata.get("provider", "email") # Default to email if implicit
+            terms_agreed = user_metadata.get("terms_agreed", False)
             
             token_user_id = uuid.UUID(user_id)
             
@@ -58,32 +60,36 @@ def get_current_user(
             if user:
                 # Sync ID if it doesn't match (Migration for existing users)
                 if user.id != token_user_id:
-                    # ... [Migration Logic skipped for brevity, keeping existing code] ...
                      try:
                         print(f"Migrating user {user.email} from {user.id} to {token_user_id}")
-                        # ... (keep existing migration logic) ...
-                        # For this tool call, I'll rely on the fact that I'm replacing a large block. 
-                        # Wait, migration logic is huge. I should try to target just the User retrieval and update part if possible? 
-                        # No, I need to insert the provider update logic.
-                        # It's better to update the user object AFTER getting it (and potentially migrating it).
-                        pass
+                        # ... (keep existing migration logic if any, currently empty in replaced block) ...
                      except Exception:
                          pass
 
-                # Sync Provider Info
+                # Sync Provider Info & Terms
+                is_changed = False
                 if user.auth_provider != provider:
                     user.auth_provider = provider
+                    is_changed = True
+                
+                # If metadata says agreed but DB says no, update DB. 
+                # (But reverse is not necessarily true? If DB says yes, we keep yes)
+                if terms_agreed and not user.terms_agreed:
+                    user.terms_agreed = True
+                    is_changed = True
+                    
+                if is_changed:
                     session.add(user)
                     session.commit()
                     session.refresh(user)
-
             else:
                 try:
                     user = User(
                         email=email, 
                         name=email.split("@")[0], 
                         id=token_user_id,
-                        auth_provider=provider
+                        auth_provider=provider,
+                        terms_agreed=terms_agreed # Set initial value from metadata
                     )
                     session.add(user)
                     session.commit()

@@ -135,11 +135,16 @@ api.interceptors.response.use(
         return response;
     },
     async (error: AxiosError) => {
-        console.error(`[Axios] Error: ${error.message}`, {
-            url: error.config?.url,
-            code: error.code,
-            response: error.response?.status
-        });
+        // Suppress 404 errors (noisy during logout or invalid IDs)
+        if (error.response?.status === 404) {
+            console.warn(`[Axios] 404 Not Found: ${error.config?.url}`);
+        } else {
+            console.error(`[Axios] Error: ${error.message}`, {
+                url: error.config?.url,
+                code: error.code,
+                response: error.response?.status
+            });
+        }
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // Only retry once and only for 401 errors

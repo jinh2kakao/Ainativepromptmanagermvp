@@ -36,6 +36,7 @@ class User(SQLModel, table=True):
     user_type: str = Field(default=UserType.FREE, sa_column=Column(String))
     role: UserRole = Field(default=UserRole.USER, sa_column=Column(String))
     is_active: bool = Field(default=True)
+    terms_agreed: bool = Field(default=False) # [NEW] Terms agreement status
     auth_provider: Optional[str] = Field(default=None) # 'google', 'email', etc.
     subscription_end_date: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -85,6 +86,7 @@ class UserRead(SQLModel):
     user_type: UserType
     role: UserRole
     is_active: bool
+    terms_agreed: bool = False
     subscription_end_date: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

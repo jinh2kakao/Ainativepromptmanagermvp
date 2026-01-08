@@ -16,6 +16,28 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+@router.post("/agree-terms", status_code=status.HTTP_200_OK)
+def agree_terms(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    User agrees to terms and conditions.
+    """
+    if current_user.terms_agreed:
+        return {"message": "Already agreed"}
+        
+    current_user.terms_agreed = True
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    
+    # Also update Supabase metadata if possible? 
+    # Not strictly necessary if we rely on our DB, but good for sync.
+    # Skipping Supabase update for MVP speed as our get_current_user prioritizes DB for this check if user exists.
+    
+    return {"message": "Terms agreed successfully"}
+
 @router.post("/migrate", status_code=status.HTTP_200_OK)
 def migrate_guest_data(
     guest_id: str,

@@ -15,24 +15,73 @@ export function parsePairPrompt(content: string): NonNullable<Prompt['structure'
 
     if (!content) return structure;
 
-    // 1. Try to parse as JSON (Legacy Format from Seed Script)
+    // 1. Try to parse as JSON (Legacy & Admin Console Format)
     try {
         const parsed = JSON.parse(content);
         if (Array.isArray(parsed)) {
+            let unmappedContent = '';
+
             parsed.forEach((group: any) => {
-                const groupKey = group.groupName.toLowerCase() as keyof typeof structure;
-                if (groupKey in structure && typeof structure[groupKey] === 'object') {
+                const groupNameLower = group.groupName.toLowerCase();
+                let mapped = false;
+
+                // Attempt to map to known keys
+                // We map 'job' -> job, 'persona' -> persona, etc.
+                // Note: The Admin Console allows arbitrary names.
+
+                // keyof typeof structure: 'job' | 'persona' | 'asset' | 'instruction' | 'result'
+                // We check if the group name loosely matches any of these
+
+                if (groupNameLower.includes('persona') || groupNameLower.includes('role')) {
                     group.items.forEach((item: any) => {
-                        let fieldKey = item.label.toLowerCase();
-                        if (fieldKey === 'knowledge base') fieldKey = 'knowledgeBase';
-                        if (fieldKey === 'style guide') fieldKey = 'styleGuide';
-                        // Map values
-                        if (item.value && structure[groupKey]) {
-                            (structure[groupKey] as any)[fieldKey] = item.value;
-                        }
+                        const label = item.label.toLowerCase();
+                        if (label.includes('intent') || label.includes('목표')) structure.persona.intent = item.value;
+                        else structure.persona.profile = item.value; // Default to profile if unknown
+                    });
+                    mapped = true;
+                } else if (groupNameLower.includes('asset') || groupNameLower.includes('knowledge') || groupNameLower.includes('자료')) {
+                    group.items.forEach((item: any) => {
+                        const label = item.label.toLowerCase();
+                        if (label.includes('style')) structure.asset.styleGuide = item.value;
+                        else structure.asset.knowledgeBase = item.value;
+                    });
+                    mapped = true;
+                } else if (groupNameLower.includes('instruction') || groupNameLower.includes('지시')) {
+                    group.items.forEach((item: any) => {
+                        const label = item.label.toLowerCase();
+                        if (label.includes('context')) structure.instruction.context = item.value;
+                        else if (label.includes('constraint')) structure.instruction.constraints = item.value;
+                        else structure.instruction.task = item.value; // Default to task
+                    });
+                    mapped = true;
+                } else if (groupNameLower.includes('result') || groupNameLower.includes('output') || groupNameLower.includes('결과')) {
+                    group.items.forEach((item: any) => {
+                        const label = item.label.toLowerCase();
+                        if (label.includes('example')) structure.result.example = item.value;
+                        else structure.result.format = item.value;
+                    });
+                    mapped = true;
+                }
+
+                // If not mapped (Custom Group), append to unmappedContent to save in Task or Context
+                if (!mapped) {
+                    unmappedContent += `\n\n## ${group.groupName}\n`;
+                    group.items.forEach((item: any) => {
+                        unmappedContent += `- ${item.label}: ${item.value}\n`;
                     });
                 }
             });
+
+            // Append unmapped content to instruction.task so it appears in the editor
+            if (unmappedContent) {
+                // Determine where to append. 'task' is safe.
+                if (structure.instruction.task) {
+                    structure.instruction.task += unmappedContent;
+                } else {
+                    structure.instruction.task = unmappedContent.trim();
+                }
+            }
+
             return structure;
         }
     } catch (e) {

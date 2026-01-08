@@ -51,3 +51,8 @@ backend/token_new.json
 
 # mcp
 mcp_config.json
+
+# Local Databases
+*.db
+*.sqlite3
+user_data.db

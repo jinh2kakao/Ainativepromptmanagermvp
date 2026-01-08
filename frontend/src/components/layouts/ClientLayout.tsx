@@ -110,23 +110,31 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         return () => subscription.unsubscribe();
     }, [setSession, setInitialized, pathname]);
 
+    const { data: userProfile, isLoading: isUserLoading } = useUser();
+
+    // [New] Terms Agreement Redirection
+    useEffect(() => {
+        // Only trigger if user is fully loaded and authenticated
+        if (isUserLoading || !userProfile) return;
+
+        // Route protection: specific check for terms agreement
+        const isAgreementPage = pathname === '/auth/agreement';
+
+        // If user hasn't agreed and is not on agreement page, redirect
+        // Note: We check if `terms_agreed` is strictly false (or missing if default is false)
+        // We assume backend returns `terms_agreed` field now.
+        if (userProfile.terms_agreed === false && !isAgreementPage) {
+            console.log("Redirecting to Terms Agreement Page...");
+            router.replace('/auth/agreement');
+        }
+    }, [userProfile, isUserLoading, pathname, router]);
+
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
-
-    // Mock data for now, ideally should come from a store or query
-    // But since Sidebar is now global, we need to fetch these or pass them.
-    // For simplicity, we'll fetch basic user info here or rely on AuthStore.
-    // Prompt count and quota are specific to the dashboard data... 
-    // We might need a separate store for UserStats or fetch them here.
-    // For now, let's just use placeholders or fetch if possible.
-    // For now, let's just use placeholders or fetch if possible.
-    // const { data: prompts } = usePrompts();
-    // const promptCount = prompts?.length || 0;
 
     // Usage Stats
     const { data: usageStats } = useUserUsage();
 
-    const { data: userProfile } = useUser();
     const userType: UserType = authUser ? 'free' : 'guest'; // TODO: Check for 'pro' status from user metadata or subscription
     const isAdmin = userProfile?.role === 'admin';
 

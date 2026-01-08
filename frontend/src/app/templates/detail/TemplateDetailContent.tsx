@@ -133,6 +133,36 @@ export function TemplateDetailContent() {
                                     </h2>
 
                                     {(() => {
+                                        // 1. Try to render as Flexible JSON (Admin Console Format)
+                                        try {
+                                            const parsed = JSON.parse(template.content);
+                                            if (Array.isArray(parsed)) {
+                                                return (
+                                                    <div className="space-y-6">
+                                                        {parsed.map((group: any, index: number) => (
+                                                            <div key={index} className="bg-white p-4 rounded-md border border-gray-200">
+                                                                <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+                                                                    <Sparkles className="w-4 h-4 text-purple-500" />
+                                                                    {group.groupName}
+                                                                </h3>
+                                                                <div className="space-y-2 text-sm text-gray-700">
+                                                                    {group.items.map((item: any, i: number) => (
+                                                                        <div key={i}>
+                                                                            <span className="font-semibold text-gray-500 text-xs uppercase">{item.label}:</span>{' '}
+                                                                            <span className="whitespace-pre-wrap">{item.value}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+                                        } catch (e) {
+                                            // Not JSON, fall through to Markdown rendering
+                                        }
+
+                                        // 2. Render as Markdown (Standard PAIR)
                                         const structure = parsePairPrompt(template.content);
                                         return (
                                             <div className="space-y-6">

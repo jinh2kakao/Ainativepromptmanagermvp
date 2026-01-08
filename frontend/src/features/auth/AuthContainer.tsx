@@ -84,6 +84,11 @@ export default function AuthContainer() {
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        terms_agreed: true
+                    }
+                }
             });
             // console.log('SignUp Debug - Response:', { data, error });
             if (error) throw error;

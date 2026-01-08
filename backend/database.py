@@ -40,6 +40,16 @@ def create_db_and_tables():
                 print("Migrating: Adding preview_image_url to prompttemplate...")
                 conn.execute(text("ALTER TABLE prompttemplate ADD COLUMN preview_image_url TEXT"))
                 conn.commit()
+
+            # Auto-migration for terms_agreed in User table
+            result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='user' AND column_name='terms_agreed'"))
+            if not result.fetchone():
+                print("Migrating: Adding terms_agreed to user...")
+                conn.execute(text("ALTER TABLE \"user\" ADD COLUMN terms_agreed BOOLEAN DEFAULT FALSE"))
+                # Existing users are deemed agreed
+                conn.execute(text("UPDATE \"user\" SET terms_agreed = TRUE"))
+                conn.commit()
+
     except Exception as e:
         print(f"Migration warning: {e}")
 
