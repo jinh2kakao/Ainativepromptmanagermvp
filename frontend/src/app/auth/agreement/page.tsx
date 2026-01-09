@@ -7,11 +7,15 @@ import { TermsModal } from '@/components/ui-generated/auth/TermsModal';
 import { useAuthStore } from '@/features/auth/store';
 import { api } from '@/utils/axios';
 import { useAlert } from '@/components/providers/AlertProvider';
+import { useUser } from '@/features/auth/useUser';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function TermsAgreementPage() {
     const router = useRouter();
-    const { user, isInitialized } = useAuthStore();
+    const { user: supbaseUser, isInitialized } = useAuthStore();
+    const { data: userProfile, isLoading: isProfileLoading } = useUser();
     const { alert } = useAlert();
+    const queryClient = useQueryClient();
 
     // Terms states
     const [allChecked, setAllChecked] = useState(false);
@@ -26,13 +30,13 @@ export default function TermsAgreementPage() {
     const allRequiredChecked = serviceTerms && privacyPolicy && ageConfirm;
 
     useEffect(() => {
-        if (isInitialized && !user) {
+        if (isInitialized && !supbaseUser) {
             router.replace('/login');
         }
-        if (isInitialized && user?.terms_agreed) {
+        if (userProfile?.terms_agreed) {
             router.replace('/');
         }
-    }, [user, isInitialized, router]);
+    }, [supbaseUser, isInitialized, userProfile, router]);
 
     // Update all checked state
     useEffect(() => {
@@ -56,15 +60,12 @@ export default function TermsAgreementPage() {
         setIsSubmitting(true);
         try {
             await api.post('/api/auth/agree-terms');
-            // Update local user state immediately for better UX
-            // Wait, direct manipulation of store is not exposed via setSession, but we can rely on 
-            // the redirect logic or force fetch user?
-            // Since `useAuthStore` relies on session, and `terms_agreed` is in our `User` object (which comes from backend `/api/me`)
-            // we should re-fetch the user to update the store. 
-            // Actually `api.post` succeeds, we redirect. ClientLayout/AuthContainer might want to re-check.
-            // A full page reload or router push is fine.
 
-            // Let's manually update if we can, but mostly just route to home.
+            // Invalidate user query to fetch updated terms_agreed status
+            if (supbaseUser?.id) {
+                await queryClient.invalidateQueries({ queryKey: ['user', supbaseUser.id] });
+            }
+
             window.location.href = '/';
         } catch (error) {
             console.error(error);
@@ -74,7 +75,7 @@ export default function TermsAgreementPage() {
         }
     };
 
-    if (!isInitialized || !user) {
+    if (!isInitialized || !supbaseUser || isProfileLoading) {
         return null; // Or loading spinner
     }
 
