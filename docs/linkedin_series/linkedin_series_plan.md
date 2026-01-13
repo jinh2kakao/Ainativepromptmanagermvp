@@ -38,3 +38,7 @@ To showcase the depth of expertise as a "Product Builder" by sharing a multi-par
 - **Key Insights**:
     - 기획(PO)과 구현(Dev)의 경계가 무너질 때 비로소 보이는 것들.
     - '안 되는 이유'를 찾는 대신 '되게 하는 방법'을 찾는 엔지니어링 마인드셋.
+
+### 🚀 Beta Launch: Prompt Manager 오픈 베타 (OBT)
+- **Topic**: 그동안의 여정을 담은 실제 프로덕트 공개 및 테스터 모집.
+- **Action**: Google Forms를 통한 베타 테스터 신청 접수.
